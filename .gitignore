@@ -1,0 +1,27 @@
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Claude Code
+.claude/
+
+# Build artifacts
+*.zip
+node_modules/
+
+# Sensitive
+.env
+*.log
+
+# Specs & internal docs
+*-spec.md
+**/settings.local.json
+nul
+create-zip.ps1
