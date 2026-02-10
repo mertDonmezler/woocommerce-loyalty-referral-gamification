@@ -722,7 +722,7 @@ function gorilla_social_track_share($user_id, $platform) {
     // XP ver
     $xp = intval(get_option('gorilla_lr_social_share_xp', 10));
     if ($xp > 0 && function_exists('gorilla_xp_add')) {
-        gorilla_xp_add($user_id, $xp, sprintf('Sosyal paylasim: %s', ucfirst($platform)), 'share', absint(wp_rand(100000, 999999999)));
+        gorilla_xp_add($user_id, $xp, sprintf('Sosyal paylasim: %s', ucfirst($platform)), 'share', absint(crc32($user_id . '_' . $platform . '_' . wp_date('Y-m-d'))));
     }
 
     // Badge kontrol

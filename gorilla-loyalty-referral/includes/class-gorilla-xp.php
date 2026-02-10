@@ -404,6 +404,11 @@ function gorilla_xp_on_review_approved($comment_id) {
         return;
     }
 
+    // Static guard - ayni request'te birden fazla hook fire edebilir
+    static $processed = array();
+    if (isset($processed[$comment_id])) return;
+    $processed[$comment_id] = true;
+
     $comment = get_comment($comment_id);
     if (!$comment) return;
 
@@ -446,6 +451,11 @@ function gorilla_xp_on_profile_complete($user_id, $old_user_data = null) {
     if (get_option('gorilla_lr_enabled_xp', 'yes') !== 'yes') {
         return;
     }
+
+    // Static guard - profile_update ve woocommerce_save_account_details ayni request'te fire edebilir
+    static $processed = array();
+    if (isset($processed[$user_id])) return;
+    $processed[$user_id] = true;
 
     // Daha once profil XP'si verilmis mi?
     if (gorilla_xp_has_been_awarded($user_id, 'profile', $user_id)) {
@@ -614,7 +624,7 @@ function gorilla_xp_get_recent_activity($limit = 10) {
 add_action('wp_login', 'gorilla_xp_on_login', 10, 2);
 function gorilla_xp_on_login($user_login, $user) {
     if (get_option('gorilla_lr_streak_enabled', 'no') !== 'yes') return;
-    if (get_option('gorilla_lr_enabled_xp') !== 'yes') return;
+    if (get_option('gorilla_lr_enabled_xp', 'yes') !== 'yes') return;
 
     $user_id = $user->ID;
     $today = current_time('Y-m-d');
@@ -718,7 +728,6 @@ function gorilla_xp_check_birthdays() {
             gorilla_email_birthday($user_id, $xp_amount, $credit_amount);
         }
 
-        update_user_meta($user_id, '_gorilla_birthday_awarded_year', $current_year);
     }
 }
 
@@ -896,7 +905,7 @@ add_action('gorilla_xp_level_up', function($user_id) {
 // ── XP Dusurme (Points Shop icin) ────────────────────────
 function gorilla_xp_deduct($user_id, $amount, $reason = '', $reference_type = null, $reference_id = null) {
     if (!$user_id || $amount <= 0) return false;
-    if (get_option('gorilla_lr_enabled_xp') !== 'yes') return false;
+    if (get_option('gorilla_lr_enabled_xp', 'yes') !== 'yes') return false;
 
     global $wpdb;
     $table = $wpdb->prefix . 'gorilla_xp_log';

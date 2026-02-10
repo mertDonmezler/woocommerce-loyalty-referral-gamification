@@ -777,7 +777,7 @@ add_action('woocommerce_order_status_completed', 'gorilla_affiliate_give_recurri
 add_action('woocommerce_order_status_processing', 'gorilla_affiliate_give_recurring_credit', 16, 1);
 function gorilla_affiliate_give_recurring_credit($order_id) {
     if (get_option('gorilla_lr_recurring_affiliate_enabled', 'no') !== 'yes') return;
-    if (get_option('gorilla_lr_enabled_affiliate') !== 'yes') return;
+    if (get_option('gorilla_lr_enabled_affiliate', 'yes') !== 'yes') return;
 
     $order = wc_get_order($order_id);
     if (!$order) return;

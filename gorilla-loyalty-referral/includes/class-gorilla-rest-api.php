@@ -173,7 +173,7 @@ function gorilla_register_rest_routes() {
                 'required'          => true,
                 'sanitize_callback' => 'sanitize_key',
                 'validate_callback' => function($param) {
-                    return in_array($param, array('facebook', 'twitter', 'instagram', 'tiktok'), true);
+                    return in_array($param, array('facebook', 'twitter', 'whatsapp', 'instagram', 'tiktok'), true);
                 },
             ),
         ),

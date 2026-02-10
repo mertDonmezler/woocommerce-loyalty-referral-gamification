@@ -54,7 +54,7 @@ add_filter('woocommerce_account_menu_items', function($items) {
 // ══════════════════════════════════════════════════════════
 add_action('woocommerce_account_gorilla-loyalty_endpoint', function() {
     try {
-        if (!function_exists('gorilla_loyalty_calculate_tier') || !function_exists('gorilla_get_tiers')) {
+        if (!function_exists('gorilla_loyalty_calculate_tier') || !function_exists('gorilla_get_tiers') || get_option('gorilla_lr_enabled_loyalty', 'yes') !== 'yes') {
             echo '<p>Sadakat programı şu anda kullanılamıyor.</p>';
             return;
         }
