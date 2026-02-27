@@ -48,8 +48,8 @@ jobs:
 
       - name: Create ZIP
         run: |
-          cd poke-holo-cards
-          zip -r ../poke-holo-cards-v${{ steps.version.outputs.version }}.zip . \
+          zip -r poke-holo-cards-v${{ steps.version.outputs.version }}.zip \
+            poke-holo-cards/ \
             -x "*.git*" "*.DS_Store" "*__MACOSX*"
 
       - name: Upload artifact

@@ -48,8 +48,8 @@ jobs:
 
       - name: Create ZIP
         run: |
-          cd gorilla-loyalty-gamification
-          zip -r ../gorilla-loyalty-gamification-v${{ steps.version.outputs.version }}.zip . \
+          zip -r gorilla-loyalty-gamification-v${{ steps.version.outputs.version }}.zip \
+            gorilla-loyalty-gamification/ \
             -x "*.git*" "*.DS_Store" "*__MACOSX*"
 
       - name: Upload artifact

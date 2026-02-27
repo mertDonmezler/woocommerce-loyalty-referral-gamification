@@ -48,8 +48,8 @@ jobs:
 
       - name: Create ZIP
         run: |
-          cd gorilla-referral-affiliate
-          zip -r ../gorilla-referral-affiliate-v${{ steps.version.outputs.version }}.zip . \
+          zip -r gorilla-referral-affiliate-v${{ steps.version.outputs.version }}.zip \
+            gorilla-referral-affiliate/ \
             -x "*.git*" "*.DS_Store" "*__MACOSX*"
 
       - name: Upload artifact
