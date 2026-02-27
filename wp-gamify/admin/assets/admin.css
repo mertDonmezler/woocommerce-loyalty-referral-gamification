@@ -1,0 +1,780 @@
+/**
+ * WP Gamify Admin CSS
+ *
+ * @package WPGamify
+ * @since   1.0.0
+ */
+
+:root {
+    --wpg-primary: #6366f1;
+    --wpg-primary-hover: #4f46e5;
+    --wpg-success: #22c55e;
+    --wpg-success-light: #dcfce7;
+    --wpg-warning: #f59e0b;
+    --wpg-warning-light: #fef3c7;
+    --wpg-danger: #ef4444;
+    --wpg-danger-light: #fee2e2;
+    --wpg-bg: #f8fafc;
+    --wpg-card-bg: #ffffff;
+    --wpg-text: #1e293b;
+    --wpg-text-muted: #64748b;
+    --wpg-border: #e2e8f0;
+    --wpg-radius: 12px;
+    --wpg-radius-sm: 8px;
+    --wpg-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --wpg-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* ─── Layout ───────────────────────────────────────────────────────── */
+
+.wpgamify-wrap {
+    max-width: 1200px;
+}
+
+.wpgamify-wrap h1 {
+    color: var(--wpg-text);
+    font-weight: 600;
+}
+
+/* ─── Cards Row ────────────────────────────────────────────────────── */
+
+.wpgamify-cards-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin: 20px 0;
+}
+
+.wpgamify-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--wpg-card-bg);
+    border: 1px solid var(--wpg-border);
+    border-radius: var(--wpg-radius);
+    padding: 20px;
+    box-shadow: var(--wpg-shadow);
+    transition: box-shadow 0.2s;
+}
+
+.wpgamify-card:hover {
+    box-shadow: var(--wpg-shadow-lg);
+}
+
+.wpgamify-card-icon .dashicons {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+}
+
+.wpgamify-card-body {
+    display: flex;
+    flex-direction: column;
+}
+
+.wpgamify-card-label {
+    font-size: 12px;
+    color: var(--wpg-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+}
+
+.wpgamify-card-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--wpg-text);
+    line-height: 1.2;
+}
+
+.wpgamify-card-value small {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--wpg-text-muted);
+    margin-left: 4px;
+}
+
+/* ─── Dashboard Grid ───────────────────────────────────────────────── */
+
+.wpgamify-dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 20px 0;
+}
+
+@media (max-width: 960px) {
+    .wpgamify-dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ─── Panels ───────────────────────────────────────────────────────── */
+
+.wpgamify-panel {
+    background: var(--wpg-card-bg);
+    border: 1px solid var(--wpg-border);
+    border-radius: var(--wpg-radius);
+    padding: 20px;
+    box-shadow: var(--wpg-shadow);
+    margin-bottom: 20px;
+}
+
+.wpgamify-panel-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--wpg-text);
+    margin: 0 0 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--wpg-border);
+}
+
+/* ─── Level Bars ───────────────────────────────────────────────────── */
+
+.wpgamify-level-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.wpgamify-level-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.wpgamify-level-bar-label {
+    width: 100px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--wpg-text);
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.wpgamify-level-bar-track {
+    flex: 1;
+    height: 24px;
+    background: #f1f5f9;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.wpgamify-level-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--wpg-primary), var(--wpg-primary-hover));
+    border-radius: 6px;
+    min-width: 4px;
+    transition: width 0.5s ease;
+}
+
+.wpgamify-level-bar-count {
+    width: 80px;
+    font-size: 12px;
+    color: var(--wpg-text-muted);
+    flex-shrink: 0;
+}
+
+/* ─── XP Positive/Negative ─────────────────────────────────────────── */
+
+.wpgamify-xp-positive {
+    color: var(--wpg-success);
+    font-weight: 600;
+}
+
+.wpgamify-xp-negative {
+    color: var(--wpg-danger);
+    font-weight: 600;
+}
+
+/* ─── Tables ───────────────────────────────────────────────────────── */
+
+.wpgamify-wrap .widefat {
+    border-radius: var(--wpg-radius-sm);
+    overflow: hidden;
+    border-color: var(--wpg-border);
+}
+
+.wpgamify-wrap .widefat thead th {
+    background: var(--wpg-bg);
+    color: var(--wpg-text);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-bottom: 2px solid var(--wpg-border);
+    padding: 10px 12px;
+}
+
+.wpgamify-wrap .widefat td {
+    padding: 10px 12px;
+    vertical-align: middle;
+    font-size: 13px;
+}
+
+/* ─── Campaign Banner ──────────────────────────────────────────────── */
+
+.wpgamify-campaign-banner {
+    background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+    border-color: var(--wpg-primary);
+}
+
+.wpgamify-campaign-info {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.wpgamify-campaign-label {
+    font-weight: 600;
+    color: var(--wpg-text);
+    font-size: 15px;
+}
+
+.wpgamify-campaign-multiplier {
+    background: var(--wpg-primary);
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.wpgamify-campaign-dates {
+    color: var(--wpg-text-muted);
+    font-size: 13px;
+}
+
+/* ─── Settings Sections ────────────────────────────────────────────── */
+
+.wpgamify-settings-section {
+    background: var(--wpg-card-bg);
+    border: 1px solid var(--wpg-border);
+    border-radius: var(--wpg-radius);
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    box-shadow: var(--wpg-shadow);
+}
+
+.wpgamify-settings-section h2 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--wpg-border);
+    color: var(--wpg-text);
+}
+
+.wpgamify-settings-section .form-table th {
+    width: 200px;
+    padding: 12px 10px 12px 0;
+    font-weight: 500;
+}
+
+.wpgamify-settings-section .form-table td {
+    padding: 12px 0;
+}
+
+/* ─── Level Table ──────────────────────────────────────────────────── */
+
+.wpgamify-levels-table .column-sort {
+    width: 40px;
+    text-align: center;
+    cursor: move;
+}
+
+.wpgamify-sort-handle {
+    color: var(--wpg-text-muted);
+    cursor: move;
+}
+
+.wpgamify-sort-handle:hover {
+    color: var(--wpg-primary);
+}
+
+.wpgamify-level-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+.wpgamify-color-swatch {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    vertical-align: middle;
+    margin-right: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.wpgamify-levels-table .button-small {
+    margin-right: 4px;
+}
+
+/* ─── Modal ────────────────────────────────────────────────────────── */
+
+.wpgamify-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 100100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wpgamify-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.wpgamify-modal-content {
+    position: relative;
+    background: #fff;
+    border-radius: var(--wpg-radius);
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: var(--wpg-shadow-lg);
+}
+
+.wpgamify-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--wpg-border);
+}
+
+.wpgamify-modal-header h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.wpgamify-modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--wpg-text-muted);
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+.wpgamify-modal-close:hover {
+    color: var(--wpg-danger);
+}
+
+.wpgamify-modal-content .form-table {
+    margin: 0;
+    padding: 0 24px;
+}
+
+.wpgamify-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--wpg-border);
+}
+
+/* ─── Media Field ──────────────────────────────────────────────────── */
+
+.wpgamify-media-field {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.wpgamify-media-field .wpgamify-level-icon {
+    width: 48px;
+    height: 48px;
+}
+
+/* ─── Search / Autocomplete ────────────────────────────────────────── */
+
+.wpgamify-search-wrapper {
+    position: relative;
+}
+
+.wpgamify-search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid var(--wpg-border);
+    border-top: none;
+    border-radius: 0 0 var(--wpg-radius-sm) var(--wpg-radius-sm);
+    box-shadow: var(--wpg-shadow-lg);
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 100;
+}
+
+.wpgamify-search-result-item {
+    padding: 10px 14px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--wpg-border);
+    transition: background 0.15s;
+}
+
+.wpgamify-search-result-item:last-child {
+    border-bottom: none;
+}
+
+.wpgamify-search-result-item:hover {
+    background: var(--wpg-bg);
+}
+
+.wpgamify-search-result-name {
+    font-weight: 500;
+    color: var(--wpg-text);
+}
+
+.wpgamify-search-result-email {
+    font-size: 12px;
+    color: var(--wpg-text-muted);
+}
+
+.wpgamify-search-result-xp {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--wpg-primary);
+}
+
+/* ─── User Info Card ───────────────────────────────────────────────── */
+
+.wpgamify-user-info-card {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.wpgamify-user-info-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.wpgamify-info-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--wpg-text-muted);
+}
+
+.wpgamify-info-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--wpg-text);
+}
+
+/* ─── Manual XP Layout ─────────────────────────────────────────────── */
+
+.wpgamify-manual-xp-layout {
+    max-width: 800px;
+}
+
+/* ─── Filter Row ───────────────────────────────────────────────────── */
+
+.wpgamify-filters {
+    margin-bottom: 16px;
+}
+
+.wpgamify-filter-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.wpgamify-filter-row label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--wpg-text-muted);
+}
+
+.wpgamify-filter-row input[type="date"],
+.wpgamify-filter-row select {
+    min-width: 140px;
+}
+
+.wpgamify-result-count {
+    font-size: 13px;
+    color: var(--wpg-text-muted);
+    margin: 0 0 12px;
+}
+
+/* ─── Toast Notification ───────────────────────────────────────────── */
+
+.wpgamify-toast {
+    position: fixed;
+    top: 40px;
+    right: 20px;
+    z-index: 100200;
+    padding: 12px 20px;
+    border-radius: var(--wpg-radius-sm);
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: var(--wpg-shadow-lg);
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.3s, transform 0.3s;
+    max-width: 400px;
+}
+
+.wpgamify-toast.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.wpgamify-toast-success {
+    background: var(--wpg-success-light);
+    color: #166534;
+    border: 1px solid var(--wpg-success);
+}
+
+.wpgamify-toast-error {
+    background: var(--wpg-danger-light);
+    color: #991b1b;
+    border: 1px solid var(--wpg-danger);
+}
+
+.wpgamify-toast-warning {
+    background: var(--wpg-warning-light);
+    color: #92400e;
+    border: 1px solid var(--wpg-warning);
+}
+
+/* ─── Setup Wizard ─────────────────────────────────────────────────── */
+
+.wpgamify-wizard {
+    max-width: 700px;
+    margin: 20px auto;
+}
+
+.wpgamify-wizard-step-list {
+    display: flex;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 24px;
+    gap: 0;
+    counter-reset: wizard-step;
+}
+
+.wpgamify-wizard-step-list li {
+    flex: 1;
+    text-align: center;
+    position: relative;
+    padding: 12px 0;
+}
+
+.wpgamify-wizard-step-list li::after {
+    content: '';
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background: var(--wpg-border);
+}
+
+.wpgamify-wizard-step-list li:last-child::after {
+    display: none;
+}
+
+.wpgamify-wizard-step-list li.completed::after {
+    background: var(--wpg-success);
+}
+
+.step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--wpg-border);
+    color: var(--wpg-text-muted);
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 6px;
+    position: relative;
+    z-index: 1;
+}
+
+.wpgamify-wizard-step.active .step-number {
+    background: var(--wpg-primary);
+    color: #fff;
+}
+
+.wpgamify-wizard-step.completed .step-number {
+    background: var(--wpg-success);
+    color: #fff;
+}
+
+.step-label {
+    display: block;
+    font-size: 12px;
+    color: var(--wpg-text-muted);
+    margin-top: 4px;
+}
+
+.wpgamify-wizard-step.active .step-label {
+    color: var(--wpg-primary);
+    font-weight: 600;
+}
+
+.wpgamify-wizard-panel {
+    background: var(--wpg-card-bg);
+    border: 1px solid var(--wpg-border);
+    border-radius: var(--wpg-radius);
+    padding: 32px;
+    box-shadow: var(--wpg-shadow);
+    text-align: center;
+}
+
+.wpgamify-wizard-panel h2 {
+    margin-top: 0;
+}
+
+.wpgamify-wizard-panel p {
+    color: var(--wpg-text-muted);
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.wpgamify-wizard-panel .form-table {
+    text-align: left;
+}
+
+.wpgamify-wizard-icon .dashicons {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: var(--wpg-primary);
+    margin-bottom: 12px;
+}
+
+.wpgamify-wizard-complete .wpgamify-wizard-icon .dashicons {
+    color: var(--wpg-success);
+}
+
+.wpgamify-feature-list {
+    text-align: left;
+    list-style: none;
+    padding: 0;
+    max-width: 400px;
+    margin: 16px auto;
+}
+
+.wpgamify-feature-list li {
+    padding: 6px 0;
+    color: var(--wpg-text);
+}
+
+.wpgamify-feature-list .dashicons {
+    color: var(--wpg-success);
+    margin-right: 8px;
+}
+
+.wpgamify-wizard-note {
+    font-size: 13px;
+    font-style: italic;
+}
+
+.wpgamify-wizard-actions {
+    margin-top: 24px;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+
+.wpgamify-wizard-levels-table {
+    text-align: left;
+    margin: 16px 0;
+}
+
+/* ─── Sortable Placeholder ─────────────────────────────────────────── */
+
+.ui-sortable-placeholder {
+    background: var(--wpg-bg) !important;
+    border: 2px dashed var(--wpg-primary) !important;
+    visibility: visible !important;
+    height: 48px;
+}
+
+.ui-sortable-helper {
+    background: var(--wpg-card-bg);
+    box-shadow: var(--wpg-shadow-lg);
+}
+
+/* ─── Responsive ───────────────────────────────────────────────────── */
+
+@media (max-width: 782px) {
+    .wpgamify-cards-row {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .wpgamify-card {
+        padding: 14px;
+    }
+
+    .wpgamify-card-value {
+        font-size: 18px;
+    }
+
+    .wpgamify-filter-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .wpgamify-modal-content {
+        width: 95%;
+    }
+
+    .wpgamify-wizard-step-list {
+        gap: 0;
+    }
+
+    .step-label {
+        font-size: 10px;
+    }
+
+    .wpgamify-user-info-card {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .wpgamify-settings-section .form-table th {
+        width: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .wpgamify-cards-row {
+        grid-template-columns: 1fr;
+    }
+
+    .wpgamify-user-info-card {
+        grid-template-columns: 1fr;
+    }
+}

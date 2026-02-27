@@ -1,0 +1,835 @@
+/**
+ * WP Gamify - Musteri Dashboard Stilleri
+ *
+ * TCG (koleksiyon karti) estetiginde, koyu tema varsayilan,
+ * acik tema @media prefers-color-scheme destegi ile.
+ *
+ * @package    WPGamify
+ * @subpackage Frontend\Assets
+ * @since      1.0.0
+ */
+
+/* ─── CSS Degiskenleri (Koyu Tema - Varsayilan) ────────────────────────── */
+
+:root {
+    --wpg-primary: #6366f1;
+    --wpg-primary-light: #818cf8;
+    --wpg-primary-dark: #4f46e5;
+    --wpg-success: #22c55e;
+    --wpg-success-bg: rgba(34, 197, 94, 0.12);
+    --wpg-warning: #f59e0b;
+    --wpg-warning-bg: rgba(245, 158, 11, 0.12);
+    --wpg-danger: #ef4444;
+    --wpg-danger-bg: rgba(239, 68, 68, 0.12);
+    --wpg-bg: #0f172a;
+    --wpg-card-bg: #1e293b;
+    --wpg-card-bg-alpha: rgba(30, 41, 59, 0.8);
+    --wpg-card-border: #334155;
+    --wpg-card-border-hover: #475569;
+    --wpg-text: #f1f5f9;
+    --wpg-text-muted: #94a3b8;
+    --wpg-text-dim: #64748b;
+    --wpg-radius: 16px;
+    --wpg-radius-sm: 10px;
+    --wpg-radius-xs: 6px;
+    --wpg-glow: 0 0 20px rgba(99, 102, 241, 0.3);
+    --wpg-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+    --wpg-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
+    --wpg-transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --wpg-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+    --wpg-backdrop: blur(12px) saturate(150%);
+}
+
+/* ─── Acik Tema Degiskenleri ───────────────────────────────────────────── */
+
+@media (prefers-color-scheme: light) {
+    :root {
+        --wpg-bg: #f8fafc;
+        --wpg-card-bg: #ffffff;
+        --wpg-card-bg-alpha: rgba(255, 255, 255, 0.85);
+        --wpg-card-border: #e2e8f0;
+        --wpg-card-border-hover: #cbd5e1;
+        --wpg-text: #0f172a;
+        --wpg-text-muted: #64748b;
+        --wpg-text-dim: #94a3b8;
+        --wpg-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        --wpg-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+        --wpg-glow: 0 0 20px rgba(99, 102, 241, 0.15);
+        --wpg-success-bg: rgba(34, 197, 94, 0.08);
+        --wpg-warning-bg: rgba(245, 158, 11, 0.08);
+        --wpg-danger-bg: rgba(239, 68, 68, 0.08);
+    }
+}
+
+/* ─── Ana Konteyner ────────────────────────────────────────────────────── */
+
+.wpg-dashboard {
+    font-family: var(--wpg-font);
+    color: var(--wpg-text);
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 0 2rem;
+}
+
+.wpg-dashboard *,
+.wpg-dashboard *::before,
+.wpg-dashboard *::after {
+    box-sizing: border-box;
+}
+
+/* ─── Bolum Basligi ────────────────────────────────────────────────────── */
+
+.wpg-section-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--wpg-text);
+    margin: 0 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--wpg-card-border);
+    letter-spacing: -0.01em;
+}
+
+/* ─── Kampanya Banner ──────────────────────────────────────────────────── */
+
+.wpg-campaign-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(239, 68, 68, 0.1) 100%);
+    border: 1px solid var(--wpg-warning);
+    border-radius: var(--wpg-radius-sm);
+    animation: wpg-pulse-glow 2s ease-in-out infinite;
+}
+
+.wpg-campaign-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.wpg-campaign-text {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--wpg-text);
+    line-height: 1.4;
+}
+
+.wpg-campaign-end {
+    font-weight: 400;
+    color: var(--wpg-text-muted);
+    font-size: 0.85rem;
+}
+
+@keyframes wpg-pulse-glow {
+    0%, 100% {
+        box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 24px rgba(245, 158, 11, 0.4);
+    }
+}
+
+/* ─── Level Karti ──────────────────────────────────────────────────────── */
+
+.wpg-level-card {
+    position: relative;
+    padding: 1.75rem;
+    margin-bottom: 1.5rem;
+    background: var(--wpg-card-bg);
+    border: 1px solid var(--wpg-card-border);
+    border-radius: var(--wpg-radius);
+    box-shadow: var(--wpg-glow), var(--wpg-shadow);
+    overflow: hidden;
+}
+
+.wpg-level-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--wpg-radius);
+    padding: 2px;
+    background: linear-gradient(
+        135deg,
+        var(--wpg-level-color, var(--wpg-primary)) 0%,
+        transparent 50%,
+        var(--wpg-level-color, var(--wpg-primary)) 100%
+    );
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.wpg-level-card__header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.wpg-level-card__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--wpg-level-color, var(--wpg-primary));
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.3);
+    flex-shrink: 0;
+}
+
+.wpg-level-card__icon-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    background: linear-gradient(135deg, var(--wpg-level-color, var(--wpg-primary)), var(--wpg-primary-light));
+    color: #fff;
+    flex-shrink: 0;
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.3);
+}
+
+.wpg-level-card__info {
+    flex: 1;
+    min-width: 0;
+}
+
+.wpg-level-card__title {
+    font-size: 1.35rem;
+    font-weight: 800;
+    margin: 0 0 0.25rem;
+    color: var(--wpg-text);
+    letter-spacing: -0.02em;
+}
+
+.wpg-level-card__subtitle {
+    font-size: 0.9rem;
+    color: var(--wpg-text-muted);
+    margin: 0;
+    line-height: 1.4;
+}
+
+.wpg-level-card__subtitle strong {
+    color: var(--wpg-primary-light);
+}
+
+/* ─── Progress Bar ─────────────────────────────────────────────────────── */
+
+.wpg-progress {
+    position: relative;
+}
+
+.wpg-progress__bar {
+    height: 12px;
+    background: rgba(100, 116, 139, 0.2);
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+}
+
+.wpg-progress__fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--wpg-level-color, var(--wpg-primary)), var(--wpg-primary-light));
+    border-radius: 6px;
+    transition: width 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+    min-width: 0;
+}
+
+.wpg-progress__fill::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.25) 50%,
+        transparent 100%
+    );
+    animation: wpg-shimmer 2s ease-in-out infinite;
+}
+
+@keyframes wpg-shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.wpg-progress__label {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--wpg-text-muted);
+    font-weight: 500;
+}
+
+/* ─── Istatistik Grid ──────────────────────────────────────────────────── */
+
+.wpg-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.wpg-stat-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 1.25rem;
+    background: var(--wpg-card-bg-alpha);
+    backdrop-filter: var(--wpg-backdrop);
+    -webkit-backdrop-filter: var(--wpg-backdrop);
+    border: 1px solid var(--wpg-card-border);
+    border-radius: var(--wpg-radius-sm);
+    box-shadow: var(--wpg-shadow-sm);
+    transition: border-color var(--wpg-transition), box-shadow var(--wpg-transition);
+}
+
+.wpg-stat-card:hover {
+    border-color: var(--wpg-card-border-hover);
+    box-shadow: var(--wpg-shadow);
+}
+
+.wpg-stat-card__icon {
+    font-size: 1.75rem;
+    flex-shrink: 0;
+    line-height: 1;
+    margin-top: 0.15rem;
+}
+
+.wpg-stat-card__content {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.wpg-stat-card__value {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--wpg-text);
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+}
+
+.wpg-stat-card__label {
+    font-size: 0.85rem;
+    color: var(--wpg-text-muted);
+    font-weight: 500;
+    margin-top: 0.15rem;
+}
+
+.wpg-stat-card__label--title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--wpg-text);
+    margin-bottom: 0.5rem;
+}
+
+.wpg-stat-card__sub {
+    font-size: 0.78rem;
+    color: var(--wpg-text-dim);
+    margin-top: 0.35rem;
+    line-height: 1.4;
+}
+
+/* ── Streak Ates Animasyonu ─────────────────────────────────────────── */
+
+.wpg-streak-fire {
+    animation: wpg-fire-bounce 1.5s ease-in-out infinite;
+}
+
+@keyframes wpg-fire-bounce {
+    0%, 100% {
+        transform: scale(1) translateY(0);
+    }
+    25% {
+        transform: scale(1.1) translateY(-2px);
+    }
+    50% {
+        transform: scale(1) translateY(0);
+    }
+    75% {
+        transform: scale(1.05) translateY(-1px);
+    }
+}
+
+/* ── Faydalar Listesi ───────────────────────────────────────────────── */
+
+.wpg-stat-card--benefits {
+    grid-column: span 1;
+}
+
+.wpg-benefits-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.wpg-benefit {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    padding: 0.3rem 0;
+}
+
+.wpg-benefit__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font-size: 0.7rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.wpg-benefit--active .wpg-benefit__icon {
+    background: var(--wpg-success-bg);
+    color: var(--wpg-success);
+}
+
+.wpg-benefit--active .wpg-benefit__text {
+    color: var(--wpg-text);
+    font-weight: 500;
+}
+
+.wpg-benefit--locked .wpg-benefit__icon {
+    background: rgba(100, 116, 139, 0.1);
+    color: var(--wpg-text-dim);
+}
+
+.wpg-benefit--locked .wpg-benefit__text {
+    color: var(--wpg-text-dim);
+    text-decoration: line-through;
+    text-decoration-color: var(--wpg-text-dim);
+}
+
+/* ─── Level Yol Haritasi ───────────────────────────────────────────────── */
+
+.wpg-level-roadmap {
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    background: var(--wpg-card-bg);
+    border: 1px solid var(--wpg-card-border);
+    border-radius: var(--wpg-radius);
+    box-shadow: var(--wpg-shadow-sm);
+}
+
+.wpg-roadmap-track {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    overflow-x: auto;
+    padding: 0.5rem 0 1rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--wpg-card-border) transparent;
+}
+
+.wpg-roadmap-track::-webkit-scrollbar {
+    height: 4px;
+}
+
+.wpg-roadmap-track::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.wpg-roadmap-track::-webkit-scrollbar-thumb {
+    background: var(--wpg-card-border);
+    border-radius: 4px;
+}
+
+.wpg-roadmap-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1 0 80px;
+    min-width: 80px;
+    position: relative;
+    text-align: center;
+}
+
+/* Baglanti cizgisi (her adimdan sonra, sonuncusu haric) */
+.wpg-roadmap-step:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    top: 18px;
+    left: calc(50% + 18px);
+    width: calc(100% - 36px);
+    height: 2px;
+    background: var(--wpg-card-border);
+    z-index: 0;
+}
+
+.wpg-roadmap-step:not(:last-child).wpg-roadmap-step--reached::after {
+    background: var(--wpg-primary);
+}
+
+/* Nokta / Dot */
+.wpg-roadmap-dot {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    position: relative;
+    z-index: 1;
+    transition: transform var(--wpg-transition), box-shadow var(--wpg-transition);
+    border: 2px solid var(--wpg-card-border);
+    background: var(--wpg-card-bg);
+    color: var(--wpg-text-dim);
+}
+
+.wpg-roadmap-dot--reached {
+    background: var(--wpg-dot-color, var(--wpg-primary));
+    border-color: var(--wpg-dot-color, var(--wpg-primary));
+    color: #fff;
+}
+
+.wpg-roadmap-dot--current {
+    background: var(--wpg-dot-color, var(--wpg-primary));
+    border-color: var(--wpg-dot-color, var(--wpg-primary));
+    color: #fff;
+    transform: scale(1.2);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--wpg-dot-color, var(--wpg-primary)) 50%, transparent);
+}
+
+.wpg-roadmap-dot--locked {
+    opacity: 0.5;
+}
+
+.wpg-roadmap-dot__star,
+.wpg-roadmap-dot__check,
+.wpg-roadmap-dot__num {
+    line-height: 1;
+}
+
+.wpg-roadmap-dot__star {
+    font-size: 1rem;
+}
+
+.wpg-roadmap-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--wpg-text-muted);
+    margin-top: 0.5rem;
+    white-space: nowrap;
+}
+
+.wpg-roadmap-xp {
+    font-size: 0.65rem;
+    color: var(--wpg-text-dim);
+    margin-top: 0.15rem;
+}
+
+/* Reached adimlardan sonra cizgi rengi */
+.wpg-roadmap-step:not(:last-child) .wpg-roadmap-dot--reached + .wpg-roadmap-label,
+.wpg-roadmap-step:not(:last-child) .wpg-roadmap-dot--current + .wpg-roadmap-label {
+    color: var(--wpg-text);
+}
+
+/* ─── XP Gecmisi Tablosu ──────────────────────────────────────────────── */
+
+.wpg-history {
+    padding: 1.5rem;
+    background: var(--wpg-card-bg);
+    border: 1px solid var(--wpg-card-border);
+    border-radius: var(--wpg-radius);
+    box-shadow: var(--wpg-shadow-sm);
+}
+
+.wpg-history-table-wrap {
+    overflow-x: auto;
+    margin-bottom: 1rem;
+}
+
+.wpg-history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.wpg-history-table thead th {
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--wpg-text-muted);
+    padding: 0.75rem 1rem;
+    border-bottom: 2px solid var(--wpg-card-border);
+    white-space: nowrap;
+}
+
+.wpg-history-table tbody td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--wpg-card-border);
+    color: var(--wpg-text);
+    vertical-align: middle;
+}
+
+.wpg-history-table tbody tr {
+    transition: background var(--wpg-transition);
+}
+
+.wpg-history-table tbody tr:hover {
+    background: rgba(99, 102, 241, 0.04);
+}
+
+.wpg-history-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* XP miktar renkleri */
+.wpg-xp-positive {
+    color: var(--wpg-success) !important;
+    font-weight: 700;
+}
+
+.wpg-xp-negative {
+    color: var(--wpg-danger) !important;
+    font-weight: 700;
+}
+
+/* Gecmis bos durumu */
+.wpg-history-empty {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--wpg-text-muted);
+}
+
+.wpg-history-empty p {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+/* ─── Daha Fazla Goster Butonu ─────────────────────────────────────────── */
+
+.wpg-history-footer {
+    text-align: center;
+    padding-top: 0.5rem;
+}
+
+.wpg-load-more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.7rem 2rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--wpg-primary-light);
+    background: transparent;
+    border: 1px solid var(--wpg-primary);
+    border-radius: var(--wpg-radius-xs);
+    cursor: pointer;
+    transition:
+        background var(--wpg-transition),
+        color var(--wpg-transition),
+        box-shadow var(--wpg-transition);
+    font-family: var(--wpg-font);
+    letter-spacing: 0.01em;
+}
+
+.wpg-load-more:hover {
+    background: var(--wpg-primary);
+    color: #fff;
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.3);
+}
+
+.wpg-load-more:focus-visible {
+    outline: 2px solid var(--wpg-primary-light);
+    outline-offset: 2px;
+}
+
+.wpg-load-more:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ─── Responsive Tasarim ───────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+    .wpg-dashboard {
+        padding: 0 0 1.5rem;
+    }
+
+    .wpg-level-card {
+        padding: 1.25rem;
+    }
+
+    .wpg-level-card__title {
+        font-size: 1.1rem;
+    }
+
+    .wpg-stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+
+    .wpg-stat-card--benefits {
+        grid-column: 1 / -1;
+    }
+
+    .wpg-stat-card__value {
+        font-size: 1.35rem;
+    }
+
+    .wpg-roadmap-step {
+        min-width: 70px;
+        flex: 1 0 70px;
+    }
+
+    .wpg-roadmap-dot {
+        width: 30px;
+        height: 30px;
+        font-size: 0.65rem;
+    }
+
+    .wpg-roadmap-dot--current {
+        transform: scale(1.15);
+    }
+
+    .wpg-roadmap-step:not(:last-child)::after {
+        top: 15px;
+        left: calc(50% + 15px);
+        width: calc(100% - 30px);
+    }
+
+    /* Mobilde tablo karti gorunumu */
+    .wpg-history-table thead {
+        display: none;
+    }
+
+    .wpg-history-table tbody tr {
+        display: block;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--wpg-card-border);
+    }
+
+    .wpg-history-table tbody td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.35rem 0;
+        border-bottom: none;
+        font-size: 0.85rem;
+    }
+
+    .wpg-history-table tbody td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        font-size: 0.78rem;
+        color: var(--wpg-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+}
+
+@media (max-width: 480px) {
+    .wpg-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .wpg-level-card__header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .wpg-level-card__icon,
+    .wpg-level-card__icon-fallback {
+        width: 40px;
+        height: 40px;
+        font-size: 1.25rem;
+    }
+
+    .wpg-campaign-banner {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+    }
+}
+
+/* ─── Azaltilmis Hareket Tercihi ───────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    .wpg-progress__fill {
+        transition: none;
+    }
+
+    .wpg-progress__fill::after {
+        animation: none;
+    }
+
+    .wpg-campaign-banner {
+        animation: none;
+    }
+
+    .wpg-streak-fire {
+        animation: none;
+    }
+
+    .wpg-roadmap-dot--current {
+        box-shadow: none;
+    }
+
+    .wpg-stat-card,
+    .wpg-history-table tbody tr,
+    .wpg-load-more {
+        transition: none;
+    }
+}
+
+/* ─── Focus Durumu (Erisebilirlik) ─────────────────────────────────────── */
+
+.wpg-dashboard :focus-visible {
+    outline: 2px solid var(--wpg-primary-light);
+    outline-offset: 2px;
+}
+
+/* ─── Baski Stilleri ───────────────────────────────────────────────────── */
+
+@media print {
+    .wpg-dashboard {
+        color: #000;
+    }
+
+    .wpg-level-card,
+    .wpg-stat-card,
+    .wpg-level-roadmap,
+    .wpg-history {
+        background: #fff;
+        border: 1px solid #ccc;
+        box-shadow: none;
+    }
+
+    .wpg-campaign-banner {
+        animation: none;
+        box-shadow: none;
+    }
+
+    .wpg-load-more {
+        display: none;
+    }
+
+    .wpg-progress__fill::after {
+        animation: none;
+    }
+}
