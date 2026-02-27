@@ -1,0 +1,466 @@
+/*
+ * PHC Collection & Compare Styles
+ * @since 3.1.0
+ */
+
+/* ── Stats Panel ─────────────────────────── */
+.phc-collection-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.phc-stat {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 12px 20px;
+    text-align: center;
+    min-width: 100px;
+    border: 1px solid #e9ecef;
+}
+
+.phc-stat-num {
+    display: block;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.phc-stat-label {
+    display: block;
+    font-size: 12px;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+}
+
+.phc-stat-common    .phc-stat-num { color: #9e9e9e; }
+.phc-stat-uncommon  .phc-stat-num { color: #4caf50; }
+.phc-stat-rare      .phc-stat-num { color: #2196f3; }
+.phc-stat-epic      .phc-stat-num { color: #9c27b0; }
+.phc-stat-legendary .phc-stat-num { color: #ff9800; }
+
+/* ── Filter Bar ──────────────────────────── */
+.phc-collection-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.phc-filter-search {
+    flex: 1;
+    min-width: 180px;
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.phc-filter-rarity,
+.phc-filter-effect,
+.phc-filter-sort {
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 14px;
+    background: #fff;
+    cursor: pointer;
+}
+
+.phc-compare-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.phc-compare-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.phc-compare-btn:not(:disabled):hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+/* ── Card Grid ───────────────────────────── */
+.phc-collection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 24px;
+}
+
+.phc-collection-card {
+    position: relative;
+    border-radius: 12px;
+    background: #fff;
+    border: 2px solid transparent;
+    padding: 12px;
+    transition: border-color 0.3s, box-shadow 0.3s, transform 0.2s;
+    cursor: pointer;
+}
+
+.phc-collection-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Rarity borders */
+.phc-collection-card[data-rarity="common"]    { border-color: #e0e0e0; }
+.phc-collection-card[data-rarity="uncommon"]  { border-color: #a5d6a7; }
+.phc-collection-card[data-rarity="rare"]      { border-color: #90caf9; }
+.phc-collection-card[data-rarity="epic"]      { border-color: #ce93d8; }
+.phc-collection-card[data-rarity="legendary"] { border-color: #ffcc80; }
+
+/* Selected state */
+.phc-collection-card.phc-selected {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3), 0 4px 16px rgba(102, 126, 234, 0.2);
+}
+
+.phc-collection-card.phc-selected .phc-collection-select-overlay {
+    opacity: 1;
+}
+
+.phc-collection-card-inner {
+    pointer-events: auto;
+}
+
+.phc-collection-card-inner .phc-card {
+    width: 100% !important;
+}
+
+/* Plain (non-holo) card */
+.phc-collection-plain {
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.phc-collection-plain img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+}
+
+/* Card info */
+.phc-collection-card-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+.phc-card-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Rarity badges */
+.phc-rarity-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    color: #fff;
+}
+
+.phc-rarity-common    { background: #9e9e9e; }
+.phc-rarity-uncommon  { background: #4caf50; }
+.phc-rarity-rare      { background: #2196f3; }
+.phc-rarity-epic      { background: #9c27b0; }
+.phc-rarity-legendary { background: linear-gradient(135deg, #ff9800, #ff5722); }
+
+.phc-card-count {
+    font-size: 12px;
+    font-weight: 700;
+    color: #667eea;
+    background: #eef;
+    padding: 2px 6px;
+    border-radius: 8px;
+}
+
+/* Selection overlay */
+.phc-collection-select-overlay {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #667eea;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* Empty state */
+.phc-collection-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6c757d;
+}
+
+.phc-collection-empty p {
+    font-size: 16px;
+    margin: 0;
+}
+
+/* ── Compare Modal ───────────────────────── */
+.phc-compare-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+body.admin-bar .phc-compare-modal {
+    top: 32px;
+    height: calc(100% - 32px);
+}
+
+.phc-compare-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.phc-compare-content {
+    position: relative;
+    z-index: 1;
+    background: #fff;
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 900px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.phc-compare-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: #666;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+    z-index: 2;
+}
+
+.phc-compare-close:hover {
+    color: #333;
+}
+
+.phc-compare-cards {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.phc-compare-card-col {
+    flex: 1;
+    max-width: 300px;
+    text-align: center;
+}
+
+.phc-compare-card-wrap .phc-card {
+    width: 100% !important;
+}
+
+.phc-compare-card-name {
+    margin: 12px 0 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.phc-compare-vs {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 800;
+    color: #667eea;
+    padding-top: 80px;
+}
+
+/* Compare table */
+.phc-compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.phc-compare-table th,
+.phc-compare-table td {
+    padding: 10px 14px;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+}
+
+.phc-compare-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #333;
+}
+
+.phc-compare-table th:first-child,
+.phc-compare-table td:first-child {
+    text-align: left;
+    font-weight: 600;
+    color: #666;
+}
+
+.phc-compare-diff td {
+    background: #fffde7;
+}
+
+/* Loading spinner */
+.phc-compare-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+}
+
+.phc-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #eee;
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: phc-spin 0.8s linear infinite;
+}
+
+@keyframes phc-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ── Responsive ──────────────────────────── */
+@media (max-width: 1200px) {
+    .phc-collection-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .phc-collection-filters {
+        flex-direction: column;
+    }
+
+    .phc-filter-search {
+        min-width: 100%;
+    }
+
+    .phc-collection-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 16px;
+    }
+
+    .phc-compare-cards {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .phc-compare-vs {
+        padding-top: 0;
+        font-size: 20px;
+    }
+
+    .phc-compare-card-col {
+        max-width: 250px;
+    }
+
+    .phc-compare-content {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .phc-collection-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .phc-collection-stats {
+        gap: 8px;
+    }
+
+    .phc-stat {
+        min-width: 80px;
+        padding: 8px 12px;
+    }
+
+    .phc-stat-num {
+        font-size: 20px;
+    }
+}
+
+/* ── Focus Styles ────────────────────────── */
+.phc-compare-btn:focus-visible,
+.phc-compare-close:focus-visible,
+.phc-filter-search:focus-visible,
+.phc-filter-rarity:focus-visible,
+.phc-filter-effect:focus-visible,
+.phc-filter-sort:focus-visible,
+.phc-collection-card:focus-visible {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* ── Reduced Motion ──────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    .phc-spinner,
+    .phc-collection-card,
+    .phc-compare-btn {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

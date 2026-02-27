@@ -1,0 +1,684 @@
+# Copyright (C) 2026 Mert Donmezler
+# This file is distributed under the GPL-3.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: WooCommerce Holo Cards 1.0.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-02-15\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: WP-CLI\n"
+"X-Domain: poke-holo-cards\n"
+
+#: includes/class-phc-elementor-widget.php:42
+msgid "Holo Card"
+msgstr ""
+
+#: includes/class-phc-elementor-widget.php:120
+msgid "Card Content"
+msgstr ""
+
+#: includes/class-phc-elementor-widget.php:125
+msgid "Card Image"
+msgstr ""
+
+#: includes/class-phc-elementor-widget.php:131
+#: src/Admin/views/settings-page.php:47
+#: src/Admin/MetaBox.php:78
+msgid "Effect Type"
+msgstr ""
+
+#: includes/class-phc-elementor-widget.php:138
+#: src/Admin/views/settings-page.php:193
+msgid "Width"
+msgstr ""
+
+#: includes/class-phc-elementor-widget.php:141
+msgid "Any CSS value (e.g. 300px, 50%, 20vw)."
+msgstr ""
+
+#: includes/class-phc-elementor-widget.php:145
+msgid "Showcase Mode"
+msgstr ""
+
+#: includes/class-phc-elementor-widget.php:148
+msgid "Auto-rotate animation when idle."
+msgstr ""
+
+#: includes/class-phc-elementor-widget.php:152
+msgid "Sparkle Overlay"
+msgstr ""
+
+#: includes/class-phc-elementor-widget.php:155
+msgid "Animated sparkle particles on hover."
+msgstr ""
+
+#: includes/class-phc-elementor-widget.php:162
+msgid "Card Back (Flip)"
+msgstr ""
+
+#: includes/class-phc-elementor-widget.php:167
+msgid "Back Image"
+msgstr ""
+
+#: includes/class-phc-elementor-widget.php:169
+msgid "Optional. Double-click or press Space to flip."
+msgstr ""
+
+#: includes/class-phc-elementor-widget.php:176
+msgid "Card Style"
+msgstr ""
+
+#: includes/class-phc-elementor-widget.php:181
+#: src/Admin/views/settings-page.php:58
+#: src/Admin/views/settings-page.php:215
+#: src/Admin/MetaBox.php:87
+msgid "Glow Color"
+msgstr ""
+
+#: includes/class-phc-elementor-widget.php:187
+#: src/Admin/views/settings-page.php:64
+#: src/Admin/views/settings-page.php:219
+msgid "Border Radius (%)"
+msgstr ""
+
+#: includes/class-phc-elementor-widget.php:196
+#: src/Admin/views/settings-page.php:77
+#: src/Admin/views/settings-page.php:223
+msgid "Spring Preset"
+msgstr ""
+
+#: includes/class-phc-elementor-widget.php:200
+#: src/Admin/views/settings-page.php:226
+#: src/Admin/views/settings-page.php:765
+msgid "Default"
+msgstr ""
+
+#: includes/class-phc-elementor-widget.php:201
+#: src/Admin/views/settings-page.php:227
+msgid "Bouncy"
+msgstr ""
+
+#: includes/class-phc-elementor-widget.php:202
+#: src/Admin/views/settings-page.php:228
+msgid "Stiff"
+msgstr ""
+
+#: includes/class-phc-elementor-widget.php:203
+#: src/Admin/views/settings-page.php:229
+msgid "Smooth"
+msgstr ""
+
+#: includes/class-phc-elementor-widget.php:204
+#: src/Admin/views/settings-page.php:230
+msgid "Elastic"
+msgstr ""
+
+#: src/Utils/EffectTypes.php:40
+msgid "Holographic"
+msgstr ""
+
+#: src/Utils/EffectTypes.php:41
+msgid "Rainbow"
+msgstr ""
+
+#: src/Utils/EffectTypes.php:42
+msgid "Cosmos"
+msgstr ""
+
+#: src/Utils/EffectTypes.php:43
+msgid "Galaxy"
+msgstr ""
+
+#: src/Utils/EffectTypes.php:44
+msgid "Prism"
+msgstr ""
+
+#: src/Utils/EffectTypes.php:45
+msgid "Neon"
+msgstr ""
+
+#: src/Utils/EffectTypes.php:46
+msgid "Basic 3D"
+msgstr ""
+
+#: src/Utils/EffectTypes.php:47
+msgid "Vintage"
+msgstr ""
+
+#: src/Utils/EffectTypes.php:48
+msgid "Aurora"
+msgstr ""
+
+#: src/Utils/EffectTypes.php:49
+msgid "Glitch"
+msgstr ""
+
+#: src/Admin/MetaBox.php:43
+msgid "Holo Card Effect"
+msgstr ""
+
+#: src/Admin/MetaBox.php:71
+msgid "Enable Holo Effect"
+msgstr ""
+
+#: src/Admin/MetaBox.php:73
+msgid "Enabled"
+msgstr ""
+
+#: src/Admin/MetaBox.php:74
+msgid "Disabled"
+msgstr ""
+
+#: src/Admin/MetaBox.php:80
+msgid "Use Global Default"
+msgstr ""
+
+#: src/Admin/MetaBox.php:152
+msgid "Holo Effect"
+msgstr ""
+
+#: src/Admin/MetaBox.php:154
+msgid "Use Product Default"
+msgstr ""
+
+#: src/Admin/MetaBox.php:161
+msgid "Holo Glow Color"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:19
+msgid "WooCommerce Holo Cards - Settings"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:38
+msgid "Enable Plugin"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:41
+#: src/Admin/views/settings-page.php:93
+#: src/Admin/views/settings-page.php:156
+#: src/Admin/views/settings-page.php:200
+#: src/Admin/views/settings-page.php:201
+#: src/Admin/views/settings-page.php:209
+#: src/Admin/views/settings-page.php:210
+msgid "Yes"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:42
+#: src/Admin/views/settings-page.php:94
+#: src/Admin/views/settings-page.php:157
+#: src/Admin/views/settings-page.php:199
+#: src/Admin/views/settings-page.php:208
+msgid "No"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:54
+msgid "Choose the holographic effect style."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:70
+msgid "Auto-init CSS Class"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:73
+msgid "Elements with this class are automatically initialized."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:80
+msgid "Optional spring physics preset name (leave blank for manual stiffness/damping)."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:90
+msgid "Enable for WooCommerce"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:99
+msgid "WooCommerce Target"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:102
+msgid "Product Gallery Only"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:103
+msgid "Archive Thumbnails Only"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:104
+msgid "Both"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:115
+msgid "Hover Scale"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:121
+msgid "3D Perspective (px)"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:127
+msgid "Spring Stiffness"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:130
+msgid "Lower = smoother, higher = snappier (0.01 - 1)"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:134
+msgid "Spring Damping"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:137
+msgid "Lower = more bouncy, higher = less bouncy (0.01 - 1)"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:141
+msgid "Glare Opacity"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:148
+msgid "Shine Intensity"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:153
+msgid "Enable Gyroscope (Mobile)"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:169
+msgid "Card Settings"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:172
+msgid "Image URL"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:175
+msgid "Media Library"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:179
+msgid "Alt Text"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:180
+msgid "My Card"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:183
+msgid "Effect"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:197
+msgid "Showcase"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:206
+msgid "Sparkle"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:216
+msgid "Custom"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:235
+msgid "Back Image URL"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:236
+#: src/Admin/views/settings-page.php:240
+#: src/Admin/views/settings-page.php:253
+msgid "Optional"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:239
+msgid "Click-through URL"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:243
+msgid "Link Target"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:246
+msgid "Same Window"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:247
+msgid "New Tab"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:252
+msgid "Extra CSS Class"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:260
+#: src/Admin/views/settings-page.php:366
+msgid "Live Preview"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:262
+msgid "Enter an image URL to see preview"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:265
+msgid "Generated Shortcode"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:268
+msgid "Copy"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:270
+msgid "Copied to clipboard!"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:277
+msgid "Card Interaction Analytics"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:278
+msgid "Aggregated interaction data from frontend card hovers and clicks."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:284
+msgid "Effect Presets"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:287
+msgid "Load Preset"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:290
+msgid "-- Select Preset --"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:291
+#: src/Admin/views/settings-page.php:302
+msgid "Built-in"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:292
+msgid "Pokemon Style"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:293
+msgid "MTG Style"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:294
+msgid "Minimalist"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:295
+msgid "Neon Glow"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:296
+msgid "Retro Vintage"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:309
+msgid "Load"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:310
+msgid "Delete"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:311
+msgid "Load a preset to apply its settings. Built-in presets cannot be deleted."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:315
+msgid "Save as Preset"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:317
+msgid "Preset name"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:318
+msgid "Save Current"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:319
+msgid "Save your current effect settings as a reusable preset."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:325
+msgid "Import / Export"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:328
+msgid "Reset to Defaults"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:330
+msgid "Reset All Settings"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:331
+msgid "This will reset all plugin options to their default values. This action cannot be undone."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:335
+msgid "Export Settings"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:337
+msgid "Export"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:338
+msgid "Export current settings as JSON to the textarea below."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:342
+msgid "Import Settings"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:344
+msgid "Import"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:345
+msgid "Paste a previously exported JSON string into the textarea below and click Import."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:349
+msgid "Import / Export Data"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:367
+msgid "Hover over the card below to see the current effect in action. Change the Effect Type dropdown above to preview different effects (updates instantly)."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:372
+msgid "Holo Card Preview"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:440
+msgid "Are you sure you want to reset all settings to their defaults?"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:446
+msgid "Settings reset to defaults. The page will now reload."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:449
+msgid "Error resetting settings."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:470
+msgid "Export failed."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:484
+msgid "Please paste a valid JSON string into the textarea."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:487
+msgid "Are you sure you want to import these settings? Current settings will be overwritten."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:495
+msgid "Settings imported successfully. The page will now reload."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:498
+msgid "Import failed: "
+msgstr ""
+
+#: src/Admin/views/settings-page.php:747
+msgid "Shortcode Usage"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:750
+msgid "Available effects:"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:760
+msgid "Additional Attributes"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:764
+msgid "Attribute"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:766
+msgid "Description"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:770
+msgid "(required)"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:770
+#: src/API/CardController.php:248
+msgid "Image URL for the card front."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:771
+#: src/Admin/views/settings-page.php:774
+#: src/Admin/views/settings-page.php:779
+#: src/Admin/views/settings-page.php:780
+msgid "empty"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:771
+msgid "Alt text for the image."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:772
+msgid "Card width (any CSS value)."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:773
+#: src/Admin/views/settings-page.php:777
+#: src/Admin/views/settings-page.php:778
+#: src/Admin/views/settings-page.php:781
+msgid "global setting"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:773
+msgid "Effect type override for this card."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:774
+msgid "Additional CSS class(es)."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:775
+msgid "Set to yes to enable showcase mode (auto-rotate animation)."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:776
+msgid "Set to yes to add sparkle particle overlay."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:777
+msgid "Per-card glow color (hex, e.g. #ff00ff)."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:778
+msgid "Per-card border radius in % (0-50)."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:779
+msgid "Image URL for the card back (enables flip)."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:780
+msgid "Alt text for the back image."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:781
+msgid "Spring physics preset override for this card."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:785
+msgid "Gallery Shortcode"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:787
+msgid "Displays a responsive grid of holo cards from WordPress media library attachment IDs."
+msgstr ""
+
+#: src/Admin/views/settings-page.php:789
+msgid "Examples"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:795
+msgid "CSS Class Usage"
+msgstr ""
+
+#: src/Admin/views/settings-page.php:798
+msgid "Add the class %s to any element containing an <img> to auto-initialize:"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:50
+msgid "WooCommerce Holo Cards"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:51
+msgid "Holo Cards"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:113
+msgid "General"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:114
+msgid "WooCommerce"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:115
+msgid "Animation"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:116
+msgid "Shortcode Builder"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:117
+msgid "Analytics"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:118
+msgid "Advanced"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:188
+msgid "Invalid JSON"
+msgstr ""
+
+#: src/API/CardController.php:136
+msgid "No valid settings fields provided."
+msgstr ""
+
+#: src/API/CardController.php:176
+msgid "The img parameter is required."
+msgstr ""

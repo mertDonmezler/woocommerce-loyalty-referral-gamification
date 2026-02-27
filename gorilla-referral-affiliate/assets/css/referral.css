@@ -1,0 +1,355 @@
+/**
+ * Gorilla Referral & Affiliate - Frontend Styles
+ * Version: 1.0.0
+ * Author: Mert Donmezler
+ * (c) 2025-2026 Mert Donmezler
+ */
+
+/* Animations */
+@keyframes glrFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glrSlideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glrPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+@keyframes glrShimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+@keyframes glrProgressFill {
+    from { width: 0; }
+}
+
+/* Container */
+.glr-wrap {
+    max-width: 800px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    animation: glrFadeIn 0.4s ease;
+}
+
+/* Hero Cards */
+.glr-hero {
+    padding: 35px;
+    border-radius: 16px;
+    text-align: center;
+    margin-bottom: 20px;
+    animation: glrSlideUp 0.5s ease;
+}
+
+/* Standard Card */
+.glr-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 12px;
+    animation: glrFadeIn 0.4s ease;
+    transition: box-shadow 0.2s ease;
+}
+
+.glr-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+}
+
+/* Progress Bar */
+.glr-progress-track {
+    background: #e5e7eb;
+    border-radius: 20px;
+    height: 26px;
+    overflow: hidden;
+    margin: 16px 0 0;
+}
+
+.glr-progress-bar {
+    height: 100%;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    min-width: 45px;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: glrProgressFill 1s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Progress Bar Stripe */
+@keyframes glrStripeMove {
+    0% { background-position: 0 0; }
+    100% { background-position: 40px 0; }
+}
+.glr-progress-bar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(-45deg, rgba(255,255,255,0.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.15) 75%, transparent 75%);
+    background-size: 40px 40px;
+    animation: glrStripeMove 1s linear infinite;
+    border-radius: inherit;
+}
+
+/* Form Elements */
+.glr-form-group {
+    margin-bottom: 16px;
+}
+
+.glr-form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    font-size: 14px;
+    color: #374151;
+}
+
+.glr-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.glr-input:focus {
+    outline: none;
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 3px #fef3c7;
+}
+
+/* Buttons */
+.glr-btn {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.glr-btn:hover {
+    background: linear-gradient(135deg, #ea580c, #c2410c);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(249,115,22,0.3);
+}
+
+.glr-btn:active {
+    transform: translateY(0);
+}
+
+/* Toast Notification */
+.gorilla-toast {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    z-index: 10000;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    animation: glrSlideUp 0.3s ease;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    max-width: 320px;
+    overflow: hidden;
+}
+
+.gorilla-toast.success {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+.gorilla-toast.error {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.gorilla-toast.info {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.gorilla-toast-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 40px 14px 18px;
+}
+
+.gorilla-toast-close {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.7);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+}
+.gorilla-toast-close:hover { color: #fff; }
+
+@keyframes glrToastProgress {
+    from { width: 100%; }
+    to { width: 0%; }
+}
+.gorilla-toast-progress {
+    height: 3px;
+    background: rgba(255,255,255,0.4);
+    animation: glrToastProgress 4s linear forwards;
+}
+
+/* Share Buttons */
+.glr-share-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 12px;
+}
+
+.glr-share-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.glr-share-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.glr-share-btn.facebook { background: #1877f2; }
+.glr-share-btn.twitter { background: #000; }
+.glr-share-btn.whatsapp { background: #25d366; }
+
+/* Loading Skeleton */
+.glr-skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: glrShimmer 1.5s infinite;
+    border-radius: 8px;
+}
+
+/* Ripple Effect */
+@keyframes glrRipple {
+    to { transform: scale(4); opacity: 0; }
+}
+.glr-ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.35);
+    transform: scale(0);
+    animation: glrRipple 0.6s linear;
+    pointer-events: none;
+}
+
+/* Focus Visible */
+.glr-btn:focus-visible,
+.glr-share-btn:focus-visible,
+.glr-input:focus-visible {
+    outline: 3px solid #3b82f6;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.15);
+}
+
+/* Error & Empty State */
+.glr-error-state {
+    text-align: center;
+    padding: 40px 20px;
+    background: #fff;
+    border: 2px solid #fecaca;
+    border-radius: 16px;
+    max-width: 400px;
+    margin: 20px auto;
+}
+.glr-error-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #991b1b;
+    margin: 0 0 8px;
+}
+.glr-error-message {
+    font-size: 14px;
+    color: #6b7280;
+    margin: 0;
+}
+.glr-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #9ca3af;
+}
+.glr-empty-state .glr-empty-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    opacity: 0.6;
+}
+
+/* Screen Reader Only */
+.glr-sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* == RESPONSIVE == */
+@media (max-width: 768px) {
+    .glr-wrap { max-width: 100%; padding: 0 4px; }
+}
+@media (max-width: 600px) {
+    .glr-hero { padding: 24px 16px; }
+    .glr-card { padding: 16px; border-radius: 10px; }
+    .glr-input, select.glr-input { font-size: 16px; } /* prevents iOS zoom */
+    .glr-btn { padding: 16px; font-size: 16px; }
+    .gorilla-toast { left: 12px; right: 12px; max-width: none; }
+    .glr-share-buttons { flex-direction: column; }
+}
+@media (hover: none) {
+    .glr-card:hover {
+        transform: none; box-shadow: none;
+    }
+    .glr-card:active {
+        transform: scale(0.97);
+        transition: transform 0.1s;
+    }
+}
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .gorilla-toast { bottom: calc(80px + env(safe-area-inset-bottom)); }
+}
+
+/* == REDUCED MOTION == */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

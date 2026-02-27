@@ -1,0 +1,35 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "phc/holo-card",
+    "version": "1.0.0",
+    "title": "Holo Card",
+    "category": "media",
+    "icon": "format-image",
+    "description": "Add a 3D holographic card effect to any image.",
+    "keywords": [ "card", "holo", "holographic", "3d", "pokemon", "effect" ],
+    "textdomain": "poke-holo-cards",
+    "supports": {
+        "html": false,
+        "align": [ "wide", "full" ],
+        "className": true
+    },
+    "attributes": {
+        "imgUrl":       { "type": "string",  "default": "" },
+        "imgId":        { "type": "number",  "default": 0 },
+        "imgAlt":       { "type": "string",  "default": "" },
+        "width":        { "type": "string",  "default": "300px" },
+        "effect":       { "type": "string",  "default": "holo", "enum": ["holo","rainbow","cosmos","galaxy","prism","neon","basic","vintage","aurora","glitch"] },
+        "showcase":     { "type": "boolean", "default": false },
+        "sparkle":      { "type": "boolean", "default": false },
+        "glowColor":    { "type": "string",  "default": "" },
+        "borderRadius": { "type": "number",  "default": 0 },
+        "backImgUrl":   { "type": "string",  "default": "" },
+        "backImgId":    { "type": "number",  "default": 0 },
+        "springPreset": { "type": "string",  "default": "" }
+    },
+    "editorScript": "file:./index.js",
+    "editorStyle": "file:./editor.css",
+    "style": "phc-holo-cards",
+    "script": "phc-holo-cards"
+}

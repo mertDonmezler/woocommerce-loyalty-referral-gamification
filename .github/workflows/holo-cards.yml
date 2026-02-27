@@ -1,0 +1,96 @@
+name: WooCommerce Holo Cards
+
+on:
+  push:
+    paths:
+      - 'poke-holo-cards/**'
+    tags:
+      - 'holo-v*'
+  pull_request:
+    paths:
+      - 'poke-holo-cards/**'
+
+jobs:
+  lint:
+    name: PHP Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: phpcs
+
+      - name: PHP Syntax Check
+        run: find poke-holo-cards -name "*.php" -exec php -l {} \;
+
+      - name: PHPCS (Advisory)
+        continue-on-error: true
+        run: |
+          phpcs --standard=WordPress-Core --extensions=php \
+            --ignore=*/vendor/*,*/node_modules/* \
+            --report=summary \
+            poke-holo-cards/
+
+  build:
+    name: Build ZIP
+    needs: lint
+    if: startsWith(github.ref, 'refs/tags/holo-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/holo-v}" >> $GITHUB_OUTPUT
+
+      - name: Create ZIP
+        run: |
+          cd poke-holo-cards
+          zip -r ../poke-holo-cards-v${{ steps.version.outputs.version }}.zip . \
+            -x "*.git*" "*.DS_Store" "*__MACOSX*"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: poke-holo-cards-v${{ steps.version.outputs.version }}
+          path: poke-holo-cards-v${{ steps.version.outputs.version }}.zip
+
+  release:
+    name: GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/holo-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/holo-v}" >> $GITHUB_OUTPUT
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: poke-holo-cards-v${{ steps.version.outputs.version }}
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "WooCommerce Holo Cards v${{ steps.version.outputs.version }}"
+          body: |
+            ## WooCommerce Holo Cards v${{ steps.version.outputs.version }}
+
+            ### Installation
+            1. Download the ZIP file below
+            2. Go to WordPress Admin > Plugins > Add New > Upload Plugin
+            3. Upload the ZIP file and activate
+
+            ### Requirements
+            - WordPress 6.0+
+            - WooCommerce 7.0+ (optional)
+            - PHP 7.4+
+          files: poke-holo-cards-v${{ steps.version.outputs.version }}.zip

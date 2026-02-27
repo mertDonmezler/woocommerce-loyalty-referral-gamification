@@ -1,27 +1,29 @@
+# WordPress Plugin Build Artifacts
+*.zip
+
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
 # OS
 .DS_Store
 Thumbs.db
-desktop.ini
+Desktop.ini
 
-# Claude Code
-.claude/
-
-# Build artifacts
-*.zip
+# Dependencies
 node_modules/
+vendor/
 
-# Sensitive
-.env
+# Build
+dist/
+build/
+
+# Logs
 *.log
+debug.log
 
-# Specs & internal docs
-*-spec.md
-**/settings.local.json
-nul
-create-zip.ps1
+# Claude
+.claude/projects/*/memory/*.jsonl

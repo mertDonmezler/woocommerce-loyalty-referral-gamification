@@ -1,0 +1,46 @@
+/**
+ * WooCommerce Holo Cards - Gutenberg Block Editor Styles
+ *
+ * @since 2.0.0
+ */
+
+.wp-block-phc-holo-card {
+    max-width: 500px;
+}
+
+.wp-block-phc-holo-card .phc-card {
+    pointer-events: none;
+    margin: 0 auto;
+}
+
+.wp-block-phc-holo-card .phc-card__shine,
+.wp-block-phc-holo-card .phc-card__glare {
+    opacity: 0.4;
+}
+
+.wp-block-phc-holo-card .phc-block-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    background: #f9f9f9;
+    min-height: 200px;
+    text-align: center;
+}
+
+.wp-block-phc-holo-card .phc-block-placeholder .dashicons {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+    color: #58e0d9;
+}
+
+.wp-block-phc-holo-card .phc-block-placeholder p {
+    margin: 0 0 16px;
+    color: #666;
+    font-size: 14px;
+}

@@ -1,0 +1,149 @@
+/**
+ * Gorilla Store Credit - Frontend Styles
+ * Version: 1.0.0
+ * Author: Mert Donmezler
+ * (c) 2025-2026 Mert Donmezler
+ */
+
+/* Animations */
+@keyframes glrFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glrSlideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Checkout Credit Toggle */
+#gorilla-credit-toggle {
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    padding: 18px 22px;
+    border-radius: 12px;
+    margin-bottom: 22px;
+    border: 2px solid #22c55e;
+    transition: box-shadow 0.2s;
+    animation: glrFadeIn 0.4s ease;
+}
+
+#gorilla-credit-toggle:hover {
+    box-shadow: 0 4px 16px rgba(34,197,94,0.2);
+}
+
+#gorilla-credit-toggle label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 15px;
+    color: #166534;
+}
+
+#gorilla-credit-toggle input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+    accent-color: #22c55e;
+}
+
+#gorilla-credit-toggle input[type="checkbox"]:checked + span {
+    color: #15803d;
+}
+
+/* Credit slider custom styling */
+#gorilla_credit_slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    outline: none;
+}
+
+#gorilla_credit_slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    background: #22c55e;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 8px rgba(34,197,94,0.3);
+    transition: transform 0.15s;
+}
+
+#gorilla_credit_slider::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+}
+
+#gorilla_credit_slider::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    background: #22c55e;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 8px rgba(34,197,94,0.3);
+}
+
+/* Toast Notification */
+.gorilla-sc-toast {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    z-index: 10000;
+    padding: 14px 24px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    animation: glrSlideUp 0.3s ease;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    max-width: 320px;
+}
+
+.gorilla-sc-toast.success {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+.gorilla-sc-toast.info {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.gorilla-sc-toast.error {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .gorilla-sc-toast {
+        left: 12px;
+        right: 12px;
+        max-width: none;
+    }
+}
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .gorilla-sc-toast {
+        bottom: calc(80px + env(safe-area-inset-bottom));
+    }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Focus visible for accessibility */
+#gorilla_credit_slider:focus-visible {
+    outline: 3px solid #3b82f6;
+    outline-offset: 2px;
+}

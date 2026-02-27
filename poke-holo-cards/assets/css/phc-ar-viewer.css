@@ -1,0 +1,120 @@
+/*
+ * PHC AR Viewer Styles
+ * @since 3.1.0
+ */
+
+/* ── AR Button ────────────────────────────── */
+.phc-ar-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+    margin-top: 10px;
+}
+
+.phc-ar-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(58, 123, 213, 0.3);
+}
+
+.phc-ar-btn:active {
+    transform: translateY(0);
+}
+
+.phc-ar-btn.phc-ar-loading {
+    opacity: 0.7;
+    cursor: wait;
+    pointer-events: none;
+}
+
+.phc-ar-icon {
+    flex-shrink: 0;
+}
+
+/* Inline button (shortcode) */
+.phc-ar-btn-inline {
+    width: 100%;
+    justify-content: center;
+}
+
+/* ── AR Container ─────────────────────────── */
+.phc-ar-container {
+    position: relative;
+    margin-top: 12px;
+    display: none;
+}
+
+.phc-ar-container model-viewer {
+    width: 100%;
+    height: 400px;
+    border-radius: 12px;
+    overflow: hidden;
+    --poster-color: #1a1a2e;
+}
+
+.phc-ar-close-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.phc-ar-close-btn:hover {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+/* ── Shortcode Wrapper ────────────────────── */
+.phc-ar-shortcode {
+    display: inline-block;
+}
+
+/* ── Responsive ───────────────────────────── */
+@media (max-width: 768px) {
+    .phc-ar-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .phc-ar-container model-viewer {
+        height: 300px;
+    }
+}
+
+@media (max-width: 480px) {
+    .phc-ar-container model-viewer {
+        height: 250px;
+    }
+
+    .phc-ar-btn {
+        font-size: 13px;
+        padding: 8px 16px;
+    }
+}
+
+/* ── Focus Styles ────────────────────────── */
+.phc-ar-btn:focus-visible,
+.phc-ar-close-btn:focus-visible {
+    outline: 2px solid #3a7bd5;
+    outline-offset: 2px;
+}

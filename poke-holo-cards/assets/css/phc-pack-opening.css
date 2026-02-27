@@ -1,0 +1,556 @@
+/*
+ * PHC Pack Opening Styles
+ * @since 3.1.0
+ */
+
+/* ── Thank-you Banner ────────────────────── */
+.phc-thankyou-banner {
+    margin-bottom: 24px;
+}
+
+.phc-thankyou-banner-inner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    color: #fff;
+}
+
+.phc-thankyou-icon {
+    font-size: 40px;
+    flex-shrink: 0;
+}
+
+.phc-thankyou-text {
+    flex: 1;
+}
+
+.phc-thankyou-text strong {
+    display: block;
+    font-size: 18px;
+    margin-bottom: 4px;
+}
+
+.phc-thankyou-text p {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.phc-thankyou-btn {
+    display: inline-block;
+    padding: 10px 24px;
+    background: #fff;
+    color: #667eea;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+    white-space: nowrap;
+}
+
+.phc-thankyou-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    color: #667eea;
+}
+
+/* ── Pack List ────────────────────────────── */
+.phc-pack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.phc-pack-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: #fff;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.phc-pack-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.phc-pack-new {
+    border-color: #667eea;
+    background: linear-gradient(135deg, #f8f9ff, #fff);
+}
+
+.phc-pack-opened {
+    opacity: 0.7;
+}
+
+.phc-pack-icon {
+    font-size: 32px;
+    flex-shrink: 0;
+}
+
+.phc-pack-info {
+    flex: 1;
+}
+
+.phc-pack-info strong {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.phc-pack-date,
+.phc-pack-count {
+    display: inline-block;
+    font-size: 12px;
+    color: #6c757d;
+    margin-right: 8px;
+}
+
+.phc-pack-open-btn {
+    display: inline-block;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+}
+
+.phc-pack-open-btn:hover {
+    opacity: 0.9;
+    color: #fff;
+}
+
+.phc-pack-btn-replay {
+    background: #6c757d;
+}
+
+.phc-pack-btn-new {
+    animation: phc-btn-pulse 2s infinite;
+}
+
+.phc-pack-new-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: #ff4757;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.phc-pack-empty {
+    text-align: center;
+    color: #6c757d;
+    padding: 40px;
+}
+
+@keyframes phc-btn-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(102, 126, 234, 0); }
+}
+
+/* ── Pack Opening Overlay ────────────────── */
+.phc-pack-overlay {
+    position: relative;
+    min-height: 500px;
+    background: linear-gradient(180deg, #0a0a1a 0%, #1a1a3e 50%, #0a0a1a 100%);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.phc-skip-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.phc-skip-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* ── Pack Box ─────────────────────────────── */
+.phc-pack-box-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.phc-pack-box {
+    position: relative;
+    width: 200px;
+    height: 280px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 40px rgba(102, 126, 234, 0.4);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.phc-pack-box:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 60px rgba(102, 126, 234, 0.6);
+}
+
+.phc-pack-box-glow {
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    bottom: -20px;
+    left: -20px;
+    border-radius: 24px;
+    background: radial-gradient(ellipse, rgba(102, 126, 234, 0.3), transparent 70%);
+    animation: phc-glow-pulse 2s ease-in-out infinite;
+}
+
+.phc-pack-box-text {
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    z-index: 1;
+}
+
+.phc-pack-box-count {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+    margin-top: 8px;
+    z-index: 1;
+}
+
+@keyframes phc-glow-pulse {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* Pack opening animation */
+.phc-pack-opening-anim {
+    animation: phc-pack-tear 0.8s ease-out forwards;
+}
+
+@keyframes phc-pack-tear {
+    0% { transform: scale(1); opacity: 1; }
+    30% { transform: scale(1.2); }
+    60% { transform: scale(1.15) translateY(-20px); }
+    100% { transform: scale(0.5) translateY(-100px); opacity: 0; }
+}
+
+/* ── Card Reveal ──────────────────────────── */
+.phc-pack-reveal-area {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    -webkit-perspective: 1000px;
+    perspective: 1000px;
+}
+
+.phc-pack-card-wrapper {
+    position: relative;
+    width: 250px;
+    text-align: center;
+    -webkit-transform-style: preserve-3d;
+    transform-style: preserve-3d;
+    transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.phc-pack-card-entering {
+    transform: scale(0.3) translateY(100px);
+    opacity: 0;
+}
+
+.phc-pack-card-entered {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s;
+}
+
+.phc-pack-card-back,
+.phc-pack-card-front {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transition: transform 0.6s ease;
+}
+
+.phc-pack-card-back {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #2c3e50, #3498db);
+    border-radius: 12px;
+}
+
+.phc-pack-card-back-icon {
+    font-size: 48px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.phc-pack-card-front {
+    transform: rotateY(180deg);
+}
+
+.phc-pack-card-flipped .phc-pack-card-back {
+    transform: rotateY(180deg);
+}
+
+.phc-pack-card-flipped .phc-pack-card-front {
+    transform: rotateY(0deg);
+}
+
+.phc-pack-card-name {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 12px;
+}
+
+.phc-pack-rarity-label {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 10px;
+    border-radius: 10px;
+    color: #fff;
+    margin-top: 6px;
+}
+
+/* ── Rarity Flash Effects ────────────────── */
+.phc-rarity-flash {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    border-radius: 16px;
+    pointer-events: none;
+    z-index: 50;
+    animation: phc-flash-out 1s ease-out forwards;
+}
+
+.phc-rarity-flash-rare {
+    background: radial-gradient(ellipse at center, rgba(33, 150, 243, 0.5), transparent 70%);
+}
+
+.phc-rarity-flash-epic {
+    background: radial-gradient(ellipse at center, rgba(156, 39, 176, 0.6), transparent 70%);
+}
+
+.phc-rarity-flash-legendary {
+    background: radial-gradient(ellipse at center, rgba(255, 152, 0, 0.7), transparent 60%);
+    animation: phc-legendary-flash 1s ease-out forwards;
+}
+
+@keyframes phc-flash-out {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+@keyframes phc-legendary-flash {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.2); }
+    100% { opacity: 0; transform: scale(1); }
+}
+
+/* Screen shake for legendary */
+.phc-pack-shake {
+    animation: phc-shake 0.5s ease-in-out;
+}
+
+@keyframes phc-shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 50%, 90% { transform: translateX(-4px); }
+    30%, 70% { transform: translateX(4px); }
+}
+
+/* ── Summary ──────────────────────────────── */
+.phc-pack-summary {
+    padding: 32px;
+    text-align: center;
+    width: 100%;
+}
+
+.phc-pack-summary h2 {
+    color: #fff;
+    font-size: 24px;
+    margin-bottom: 24px;
+}
+
+.phc-pack-summary-enter {
+    animation: phc-fade-in 0.5s ease-out;
+}
+
+@keyframes phc-fade-in {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.phc-pack-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.phc-pack-summary-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.phc-pack-summary-card .phc-card {
+    width: 100% !important;
+}
+
+.phc-pack-summary-card-info {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.phc-pack-summary-card-name {
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.phc-pack-stats-row {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.phc-pack-stat-item {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.phc-pack-collection-btn {
+    display: inline-block;
+    padding: 12px 32px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 16px;
+    text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.phc-pack-collection-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+    color: #fff;
+}
+
+/* ── Responsive ──────────────────────────── */
+@media (max-width: 768px) {
+    .phc-thankyou-banner-inner {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .phc-pack-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .phc-pack-overlay {
+        min-height: 400px;
+    }
+
+    .phc-pack-box {
+        width: 160px;
+        height: 220px;
+    }
+
+    .phc-pack-card-wrapper {
+        width: 200px;
+    }
+
+    .phc-pack-summary-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    }
+}
+
+@media (max-width: 480px) {
+    .phc-pack-card-wrapper {
+        width: 160px;
+    }
+
+    .phc-pack-summary-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+}
+
+/* ── Focus Styles ────────────────────────── */
+.phc-skip-btn:focus-visible,
+.phc-pack-open-btn:focus-visible,
+.phc-pack-box:focus-visible,
+.phc-pack-collection-btn:focus-visible,
+.phc-thankyou-btn:focus-visible {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* ── Reduced Motion ──────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    .phc-pack-opening-anim,
+    .phc-pack-card-entering,
+    .phc-pack-card-entered,
+    .phc-pack-card-back,
+    .phc-pack-card-front,
+    .phc-rarity-flash,
+    .phc-pack-shake,
+    .phc-pack-summary-enter,
+    .phc-pack-box-glow,
+    .phc-btn-pulse {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
