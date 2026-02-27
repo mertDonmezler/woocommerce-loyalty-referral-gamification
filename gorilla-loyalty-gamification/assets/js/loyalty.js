@@ -1,5 +1,6 @@
 /**
  * Gorilla Loyalty & Gamification - Frontend Scripts
+ * Loyalty-specific logic only. Shared utilities are in gorilla-base.js.
  * Version: 3.1.0
  * Author: Mert Donmezler
  * (c) 2025-2026 Mert Donmezler
@@ -8,53 +9,10 @@
 (function() {
     'use strict';
 
-    // Toast Notification System
+    // Shared toast function reference (from gorilla-base.js)
     function showGorillaToast(message, type) {
-        type = type || 'success';
-        var existing = document.querySelectorAll('.gorilla-toast');
-        existing.forEach(function(el) { el.remove(); });
-
-        var toast = document.createElement('div');
-        toast.className = 'gorilla-toast ' + type;
-        toast.setAttribute('role', 'alert');
-        toast.setAttribute('aria-live', 'assertive');
-        var content = document.createElement('div');
-        content.className = 'gorilla-toast-content';
-        var msgSpan = document.createElement('span');
-        msgSpan.textContent = message;
-        content.appendChild(msgSpan);
-        var closeBtn = document.createElement('button');
-        closeBtn.className = 'gorilla-toast-close';
-        closeBtn.setAttribute('aria-label', 'Kapat');
-        closeBtn.textContent = '\u00D7';
-        var progress = document.createElement('div');
-        progress.className = 'gorilla-toast-progress';
-        toast.appendChild(content);
-        toast.appendChild(closeBtn);
-        toast.appendChild(progress);
-        document.body.appendChild(toast);
-
-        closeBtn.addEventListener('click', function() {
-            dismissToast(toast);
-        });
-
-        var timeout = setTimeout(function() { dismissToast(toast); }, 4000);
-
-        toast.addEventListener('mouseenter', function() {
-            clearTimeout(timeout);
-            var p = toast.querySelector('.gorilla-toast-progress');
-            if (p) p.style.animationPlayState = 'paused';
-        });
-        toast.addEventListener('mouseleave', function() {
-            var p = toast.querySelector('.gorilla-toast-progress');
-            if (p) p.style.animationPlayState = 'running';
-            timeout = setTimeout(function() { dismissToast(toast); }, 2000);
-        });
-
-        function dismissToast(el) {
-            el.style.transform = 'translateX(120%)';
-            el.style.opacity = '0';
-            setTimeout(function() { el.remove(); }, 300);
+        if (window.GorillaUI && window.GorillaUI.showToast) {
+            window.GorillaUI.showToast(message, type);
         }
     }
 
@@ -80,7 +38,7 @@
         setTimeout(function() { container.remove(); }, 3000);
     }
 
-    // ══ PHC Cross-Plugin: Holo Level-Up Celebration (6.2) ══
+    // PHC Cross-Plugin: Holo Level-Up Celebration (6.2)
     function showHoloCelebration(emoji, label) {
         if (typeof window.PHC_CardFactory === 'undefined' && !document.querySelector('.phc-card')) return;
 
@@ -98,7 +56,7 @@
         card.innerHTML =
             '<div class="phc-card__translater"><div class="phc-card__rotator" style="border-radius:16px;">' +
             '<div class="phc-card__front" style="width:100%;height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:16px;">' +
-            '<div style="font-size:72px;line-height:1;margin-bottom:12px;">' + (emoji || '🎉') + '</div>' +
+            '<div style="font-size:72px;line-height:1;margin-bottom:12px;">' + (emoji || '\uD83C\uDF89') + '</div>' +
             '<div style="font-size:20px;font-weight:800;color:#fff;text-shadow:0 0 20px rgba(255,255,255,0.5);">' + (label || 'Level Up!') + '</div>' +
             '</div>' +
             '<div class="phc-card__shine"></div>' +
@@ -125,7 +83,7 @@
         }
     }
 
-    // ══ PHC Cross-Plugin: Spin Prize Holo Card (6.3) ══
+    // PHC Cross-Plugin: Spin Prize Holo Card (6.3)
     function showHoloPrize(prizeLabel) {
         if (!document.querySelector('.phc-card')) return;
 
@@ -137,7 +95,7 @@
             '<div class="phc-card phc-effect-galaxy" style="width:160px;" data-phc-effect="galaxy" data-phc-sparkle="true">' +
             '<div class="phc-card__translater"><div class="phc-card__rotator" style="border-radius:12px;">' +
             '<div class="phc-card__front" style="width:100%;height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:12px;">' +
-            '<div style="font-size:28px;line-height:1;">🎁</div>' +
+            '<div style="font-size:28px;line-height:1;">\uD83C\uDF81</div>' +
             '<div style="font-size:12px;font-weight:800;color:#92400e;margin-top:6px;text-align:center;padding:0 8px;">' + (prizeLabel || '') + '</div>' +
             '</div>' +
             '<div class="phc-card__shine"></div>' +
@@ -152,7 +110,7 @@
         }, 3000);
     }
 
-    // ══ PHC Cross-Plugin: Holographic QR Code Frame (6.4) ══
+    // PHC Cross-Plugin: Holographic QR Code Frame (6.4)
     function initHoloQR() {
         if (!document.querySelector('.phc-card')) return;
 
@@ -193,25 +151,6 @@
             if (typeof gorillaLR !== 'undefined' && gorillaLR.loyalty_url) {
                 window.location.href = gorillaLR.loyalty_url;
             }
-        });
-    }
-
-    // Animated Progress Bars (IntersectionObserver) - triggers CSS animation on scroll visibility
-    function initProgressAnimations() {
-        var bars = document.querySelectorAll('.glr-progress-bar');
-        if (!bars.length || !('IntersectionObserver' in window)) return;
-
-        var observer = new IntersectionObserver(function(entries) {
-            entries.forEach(function(entry) {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('glr-progress-visible');
-                    observer.unobserve(entry.target);
-                }
-            });
-        }, { threshold: 0.3 });
-
-        bars.forEach(function(bar) {
-            observer.observe(bar);
         });
     }
 
@@ -427,31 +366,12 @@
         });
     }
 
-    // Ripple Effect on Buttons
-    function initRippleEffect() {
-        document.addEventListener('click', function(e) {
-            var btn = e.target.closest('.glr-btn, .glr-shop-btn, #gorilla-spin-btn, .glr-share-btn');
-            if (!btn) return;
-            var rect = btn.getBoundingClientRect();
-            var size = Math.max(rect.width, rect.height);
-            var ripple = document.createElement('span');
-            ripple.className = 'glr-ripple';
-            ripple.style.width = ripple.style.height = size + 'px';
-            ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
-            ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
-            btn.appendChild(ripple);
-            setTimeout(function() { ripple.remove(); }, 600);
-        });
-    }
-
     // Initialize on DOM Ready
     function init() {
         initLoyaltyBar();
-        initProgressAnimations();
         initSpinWheel();
         initPointsShop();
         initSocialShare();
-        initRippleEffect();
         initHoloQR();
     }
 

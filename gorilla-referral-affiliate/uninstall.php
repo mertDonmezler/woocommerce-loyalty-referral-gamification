@@ -1,7 +1,10 @@
 <?php
 /**
  * Gorilla Referral & Affiliate - Uninstall
+ *
  * Plugin tamamen silindiginde verileri temizler.
+ * Includes cross-plugin safety guards to avoid destroying data
+ * that belongs to the Gorilla Loyalty & Gamification (LG) plugin.
  *
  * @package Gorilla_Referral_Affiliate
  */
@@ -13,7 +16,19 @@ if (!defined('WP_UNINSTALL_PLUGIN')) {
 
 global $wpdb;
 
-// 1. Affiliate clicks tablosunu sil
+// ── Cross-Plugin Safety: detect if LG plugin is still active ──
+// The gorilla_credit_log table is shared between LG and RA. If LG is still
+// active, do not drop shared tables -- LG's uninstall will handle them.
+$active_plugins = get_option('active_plugins', array());
+$lg_active = false;
+foreach ($active_plugins as $p) {
+    if (strpos($p, 'gorilla-loyalty-gamification') !== false) {
+        $lg_active = true;
+        break;
+    }
+}
+
+// 1. Affiliate clicks tablosunu sil (exclusively RA data)
 $click_table = $wpdb->prefix . 'gorilla_affiliate_clicks';
 $wpdb->query("DROP TABLE IF EXISTS {$click_table}");
 
@@ -50,6 +65,7 @@ $options_to_delete = array(
     'gorilla_lr_recurring_affiliate_rate',
     'gorilla_lr_recurring_affiliate_max_orders',
     'gorilla_lr_fraud_detection_enabled',
+    'gorilla_lr_fraud_last_run',
     'gorilla_ra_version',
     'gorilla_ra_flush_needed',
 );
@@ -66,10 +82,7 @@ $wpdb->query($wpdb->prepare(
     '_gorilla_affiliate_fraud_%'
 ));
 
-// 5. Rewrite rules flush flag
-update_option('gorilla_ra_flush_needed', 'yes');
-
-// 6. Temizle transient'ler
+// 5. Temizle transient'ler
 $wpdb->query($wpdb->prepare(
     "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
     '_transient_gorilla_affiliate_%'

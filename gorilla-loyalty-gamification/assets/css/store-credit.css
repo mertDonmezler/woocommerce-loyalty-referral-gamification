@@ -5,16 +5,7 @@
  * (c) 2025-2026 Mert Donmezler
  */
 
-/* Animations */
-@keyframes glrFadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes glrSlideUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+/* Animations are provided by gorilla-base.css (glrFadeIn, glrSlideUp) */
 
 /* Checkout Credit Toggle */
 #gorilla-credit-toggle {

@@ -29,7 +29,7 @@ function gorilla_ra_register_wc_emails($email_classes) {
 // =====================================================================
 // 1. REFERRAL APPROVED
 // =====================================================================
-class Gorilla_Email_Referral_Approved extends Gorilla_Email_Base {
+class Gorilla_Email_Referral_Approved extends Gorilla_RA_Email_Base {
     public function __construct() {
         $this->id             = 'gorilla_referral_approved';
         $this->title          = 'Gorilla - Referans Onaylandi';
@@ -91,7 +91,7 @@ class Gorilla_Email_Referral_Approved extends Gorilla_Email_Base {
 // =====================================================================
 // 2. REFERRAL REJECTED
 // =====================================================================
-class Gorilla_Email_Referral_Rejected extends Gorilla_Email_Base {
+class Gorilla_Email_Referral_Rejected extends Gorilla_RA_Email_Base {
     public function __construct() {
         $this->id             = 'gorilla_referral_rejected';
         $this->title          = 'Gorilla - Referans Reddedildi';
@@ -144,7 +144,7 @@ class Gorilla_Email_Referral_Rejected extends Gorilla_Email_Base {
 // =====================================================================
 // 3. NEW REFERRAL (ADMIN)
 // =====================================================================
-class Gorilla_Email_New_Referral extends Gorilla_Email_Base {
+class Gorilla_Email_New_Referral extends Gorilla_RA_Email_Base {
     public function __construct() {
         $this->id          = 'gorilla_new_referral';
         $this->title       = 'Gorilla - Yeni Referans (Admin)';
@@ -225,7 +225,7 @@ class Gorilla_Email_New_Referral extends Gorilla_Email_Base {
 // =====================================================================
 // 4. AFFILIATE EARNED
 // =====================================================================
-class Gorilla_Email_Affiliate_Earned extends Gorilla_Email_Base {
+class Gorilla_Email_Affiliate_Earned extends Gorilla_RA_Email_Base {
     public function __construct() {
         $this->id             = 'gorilla_affiliate_earned';
         $this->title          = 'Gorilla - Affiliate Komisyonu';
@@ -285,7 +285,7 @@ class Gorilla_Email_Affiliate_Earned extends Gorilla_Email_Base {
 // =====================================================================
 // 5. DUAL REFERRAL COUPON
 // =====================================================================
-class Gorilla_Email_Dual_Referral_Coupon extends Gorilla_Email_Base {
+class Gorilla_Email_Dual_Referral_Coupon extends Gorilla_RA_Email_Base {
     public function __construct() {
         $this->id             = 'gorilla_dual_referral_coupon';
         $this->title          = 'Gorilla - Hosgeldin Kuponu';

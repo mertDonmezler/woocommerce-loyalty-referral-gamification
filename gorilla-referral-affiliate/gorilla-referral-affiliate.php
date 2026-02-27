@@ -3,7 +3,7 @@
  * Plugin Name: Gorilla Referral & Affiliate
  * Plugin URI: https://www.gorillacustomcards.com
  * Description: Video referral sistemi ve affiliate link tracking. Gorilla Loyalty & Gamification ve WooCommerce gerektirir.
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: Mert Donmezler
  * Author URI: https://www.gorillacustomcards.com
  * Text Domain: gorilla-ra
@@ -22,7 +22,7 @@
 if (!defined('ABSPATH')) exit;
 
 // -- Sabitler --
-define('GORILLA_RA_VERSION', '1.1.0');
+define('GORILLA_RA_VERSION', '1.2.0');
 define('GORILLA_RA_FILE', __FILE__);
 define('GORILLA_RA_PATH', plugin_dir_path(__FILE__));
 define('GORILLA_RA_URL', plugin_dir_url(__FILE__));
@@ -125,7 +125,6 @@ register_activation_hook(__FILE__, function() {
     $defaults = array(
         'gorilla_lr_enabled_referral'               => 'yes',
         'gorilla_lr_referral_rate'                   => 35,
-        'gorilla_lr_referral_auto'                   => 'manual',
         'gorilla_lr_enabled_affiliate'               => 'yes',
         'gorilla_lr_affiliate_rate'                  => 10,
         'gorilla_lr_affiliate_cookie_days'           => 30,
@@ -209,19 +208,33 @@ add_action('wp_enqueue_scripts', function() {
     // Sadece My Account sayfalarinda yukle
     if (!function_exists('is_account_page') || !is_account_page()) return;
 
-    // CSS
+    // Shared base styles & scripts from LG plugin (RA requires LG, so GORILLA_LG_URL is always available)
+    if (defined('GORILLA_LG_URL') && defined('GORILLA_LG_VERSION')) {
+        if (!wp_style_is('gorilla-base', 'enqueued') && !wp_style_is('gorilla-base', 'registered')) {
+            wp_enqueue_style('gorilla-base', GORILLA_LG_URL . 'assets/css/gorilla-base.css', array(), GORILLA_LG_VERSION);
+        } elseif (!wp_style_is('gorilla-base', 'enqueued')) {
+            wp_enqueue_style('gorilla-base');
+        }
+        if (!wp_script_is('gorilla-base', 'enqueued') && !wp_script_is('gorilla-base', 'registered')) {
+            wp_enqueue_script('gorilla-base', GORILLA_LG_URL . 'assets/js/gorilla-base.js', array(), GORILLA_LG_VERSION, true);
+        } elseif (!wp_script_is('gorilla-base', 'enqueued')) {
+            wp_enqueue_script('gorilla-base');
+        }
+    }
+
+    // CSS (depends on base)
     wp_enqueue_style(
         'gorilla-ra-frontend',
         GORILLA_RA_URL . 'assets/css/referral.css',
-        array(),
+        array('gorilla-base'),
         GORILLA_RA_VERSION
     );
 
-    // JS (footer'da yukle)
+    // JS (footer'da yukle, depends on base)
     wp_enqueue_script(
         'gorilla-ra-frontend',
         GORILLA_RA_URL . 'assets/js/referral.js',
-        array('jquery'),
+        array('jquery', 'gorilla-base'),
         GORILLA_RA_VERSION,
         true
     );

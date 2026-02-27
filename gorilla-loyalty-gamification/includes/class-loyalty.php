@@ -475,7 +475,8 @@ function gorilla_spin_get_prizes() {
         array('label' => '%10 Indirim',    'type' => 'coupon',       'value' => 10,  'weight' => 5),
         array('label' => 'Tekrar Dene',    'type' => 'nothing',      'value' => 0,   'weight' => 5),
     );
-    return get_option('gorilla_lr_spin_prizes', $default);
+    $saved = get_option('gorilla_lr_spin_prizes', array());
+    return !empty($saved) ? $saved : $default;
 }
 
 function gorilla_spin_grant($user_id, $reason = 'level_up') {
@@ -608,11 +609,32 @@ add_action('gorilla_xp_level_up', function($user_id) {
 }, 10, 1);
 
 // ══════════════════════════════════════════════════════════
+// KILOMETRE TASLARI (F7)
+// ══════════════════════════════════════════════════════════
+
+function gorilla_milestones_get_all() {
+    $default = array(
+        array('id' => 'first_order',  'label' => 'Ilk Siparis',    'emoji' => "\xF0\x9F\x9B\x8D\xEF\xB8\x8F", 'description' => 'Ilk siparisini ver',  'type' => 'total_orders',   'target' => 1,     'xp_reward' => 50,  'credit_reward' => 0),
+        array('id' => 'orders_10',    'label' => '10 Siparis',     'emoji' => "\xF0\x9F\x8F\x85", 'description' => '10 siparis tamamla',  'type' => 'total_orders',   'target' => 10,    'xp_reward' => 200, 'credit_reward' => 20),
+        array('id' => 'spend_5000',   'label' => '5000 TL Harcama','emoji' => "\xF0\x9F\x92\xB0", 'description' => 'Toplam 5000 TL harca','type' => 'total_spending', 'target' => 5000,  'xp_reward' => 500, 'credit_reward' => 50),
+    );
+    $saved = get_option('gorilla_lr_milestones', array());
+    return !empty($saved) ? $saved : $default;
+}
+
+// ══════════════════════════════════════════════════════════
 // PUAN DUKKANI (F8)
 // ══════════════════════════════════════════════════════════
 
 function gorilla_shop_get_rewards() {
-    return get_option('gorilla_lr_points_shop_rewards', array());
+    $default = array(
+        array('id' => 'coupon_5',      'label' => '5 TL Indirim Kuponu',    'xp_cost' => 100,  'type' => 'coupon', 'coupon_type' => 'fixed_cart', 'coupon_amount' => 5),
+        array('id' => 'coupon_10',     'label' => '10 TL Indirim Kuponu',   'xp_cost' => 200,  'type' => 'coupon', 'coupon_type' => 'fixed_cart', 'coupon_amount' => 10),
+        array('id' => 'coupon_pct_10', 'label' => '%10 Indirim Kuponu',     'xp_cost' => 300,  'type' => 'coupon', 'coupon_type' => 'percent',    'coupon_amount' => 10),
+        array('id' => 'free_shipping', 'label' => 'Ucretsiz Kargo Kuponu',  'xp_cost' => 150,  'type' => 'free_shipping', 'coupon_type' => 'fixed_cart', 'coupon_amount' => 0),
+    );
+    $saved = get_option('gorilla_lr_points_shop_rewards', array());
+    return !empty($saved) ? $saved : $default;
 }
 
 function gorilla_shop_redeem($user_id, $reward_id) {

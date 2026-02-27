@@ -85,6 +85,26 @@ add_action('admin_init', function() {
     // Gamification: Milestones
     update_option('gorilla_lr_milestones_enabled', $validate_yesno($_POST['milestones_enabled'] ?? 'no'));
 
+    // Milestones Repeater
+    if (isset($_POST['milestone_id']) && is_array($_POST['milestone_id'])) {
+        $milestones = array();
+        foreach ($_POST['milestone_id'] as $i => $mid) {
+            $mid = sanitize_key($mid);
+            if (empty($mid)) continue;
+            $milestones[] = array(
+                'id'            => $mid,
+                'label'         => sanitize_text_field($_POST['milestone_label'][$i] ?? ''),
+                'emoji'         => sanitize_text_field($_POST['milestone_emoji'][$i] ?? ''),
+                'description'   => sanitize_text_field($_POST['milestone_desc'][$i] ?? ''),
+                'type'          => sanitize_key($_POST['milestone_type'][$i] ?? 'total_orders'),
+                'target'        => max(1, floatval($_POST['milestone_target'][$i] ?? 1)),
+                'xp_reward'     => max(0, intval($_POST['milestone_xp_reward'][$i] ?? 0)),
+                'credit_reward' => max(0, floatval($_POST['milestone_credit_reward'][$i] ?? 0)),
+            );
+        }
+        update_option('gorilla_lr_milestones', $milestones);
+    }
+
     // Gamification: Challenges
     if (function_exists('gorilla_challenges_save_settings')) {
         gorilla_challenges_save_settings();
@@ -93,8 +113,42 @@ add_action('admin_init', function() {
     // Spin Wheel
     update_option('gorilla_lr_spin_enabled', $validate_yesno($_POST['spin_enabled'] ?? 'no'));
 
+    // Spin Wheel Prizes Repeater
+    if (isset($_POST['spin_label']) && is_array($_POST['spin_label'])) {
+        $prizes = array();
+        foreach ($_POST['spin_label'] as $i => $label) {
+            $label = sanitize_text_field($label);
+            if (empty($label)) continue;
+            $prizes[] = array(
+                'label'  => $label,
+                'type'   => sanitize_key($_POST['spin_type'][$i] ?? 'nothing'),
+                'value'  => max(0, floatval($_POST['spin_value'][$i] ?? 0)),
+                'weight' => max(1, intval($_POST['spin_weight'][$i] ?? 1)),
+            );
+        }
+        update_option('gorilla_lr_spin_prizes', $prizes);
+    }
+
     // Points Shop
     update_option('gorilla_lr_points_shop_enabled', $validate_yesno($_POST['points_shop_enabled'] ?? 'no'));
+
+    // Points Shop Rewards Repeater
+    if (isset($_POST['shop_id']) && is_array($_POST['shop_id'])) {
+        $rewards = array();
+        foreach ($_POST['shop_id'] as $i => $rid) {
+            $rid = sanitize_key($rid);
+            if (empty($rid)) continue;
+            $rewards[] = array(
+                'id'            => $rid,
+                'label'         => sanitize_text_field($_POST['shop_label'][$i] ?? ''),
+                'xp_cost'       => max(1, intval($_POST['shop_xp_cost'][$i] ?? 100)),
+                'type'          => sanitize_key($_POST['shop_type'][$i] ?? 'coupon'),
+                'coupon_type'   => sanitize_key($_POST['shop_coupon_type'][$i] ?? 'fixed_cart'),
+                'coupon_amount' => max(0, floatval($_POST['shop_coupon_amount'][$i] ?? 0)),
+            );
+        }
+        update_option('gorilla_lr_points_shop_rewards', $rewards);
+    }
 
     // Social Share
     update_option('gorilla_lr_social_share_enabled', $validate_yesno($_POST['social_share_enabled'] ?? 'no'));
@@ -763,10 +817,101 @@ function gorilla_settings_page_render() {
                         <th>Kilometre Taslari</th>
                         <td>
                             <label><input type="checkbox" name="milestones_enabled" value="yes" <?php checked(get_option('gorilla_lr_milestones_enabled', 'no'), 'yes'); ?>> Aktif</label>
-                            <p class="description">Musteriler belirli XP esiklerini asmca ozel oduller kazanir (ornek: 500 XP = ozel rozet).</p>
+                            <p class="description">Musteriler belirli hedefleri tamamlayinca ozel oduller kazanir.</p>
                         </td>
                     </tr>
                 </table>
+                <?php
+                $milestones = function_exists('gorilla_milestones_get_all') ? gorilla_milestones_get_all() : get_option('gorilla_lr_milestones', array());
+                $ms_types = array('total_orders' => 'Toplam Siparis', 'total_spending' => 'Toplam Harcama (TL)', 'xp' => 'XP', 'referral_count' => 'Referans Sayisi', 'review_count' => 'Yorum Sayisi');
+                ?>
+                <div id="gorilla-milestones-list" style="margin-top:10px;">
+                <?php if (!empty($milestones)): foreach ($milestones as $mi => $ms): ?>
+                    <div class="gorilla-milestone-row" style="background:#f9fafb; padding:12px 16px; border-radius:10px; margin-bottom:10px; border:1px solid #e5e7eb;">
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                            <input type="text" name="milestone_id[]" value="<?php echo esc_attr($ms['id'] ?? ''); ?>" style="width:110px;" placeholder="ID (key)">
+                            <input type="text" name="milestone_emoji[]" value="<?php echo esc_attr($ms['emoji'] ?? ''); ?>" style="width:40px; text-align:center;" title="Emoji">
+                            <input type="text" name="milestone_label[]" value="<?php echo esc_attr($ms['label'] ?? ''); ?>" style="width:150px;" placeholder="Baslik">
+                            <select name="milestone_type[]" style="width:140px;">
+                                <?php foreach ($ms_types as $mtk => $mtl): ?>
+                                    <option value="<?php echo $mtk; ?>" <?php selected($ms['type'] ?? '', $mtk); ?>><?php echo $mtl; ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <input type="number" name="milestone_target[]" value="<?php echo esc_attr($ms['target'] ?? 1); ?>" min="1" style="width:80px;" title="Hedef">
+                            <input type="number" name="milestone_xp_reward[]" value="<?php echo intval($ms['xp_reward'] ?? 0); ?>" min="0" style="width:70px;" title="XP Odul"> <span style="font-size:12px; color:#888;">XP</span>
+                            <input type="number" name="milestone_credit_reward[]" value="<?php echo floatval($ms['credit_reward'] ?? 0); ?>" min="0" step="0.01" style="width:70px;" title="Credit Odul"> <span style="font-size:12px; color:#888;">Credit</span>
+                            <button type="button" class="button button-small gorilla-milestone-remove" style="color:#d63638;" title="Sil">✕</button>
+                        </div>
+                        <input type="text" name="milestone_desc[]" value="<?php echo esc_attr($ms['description'] ?? ''); ?>" style="width:100%; margin-top:6px;" placeholder="Aciklama">
+                    </div>
+                <?php endforeach; endif; ?>
+                </div>
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                    <button type="button" class="button" id="gorilla-milestone-add">+ Kilometre Tasi Ekle</button>
+                    <button type="button" class="button" id="gorilla-milestone-reset" style="color:#b45309;">Varsayilanlara Sifirla</button>
+                </div>
+                <script>
+                (function(){
+                    var list = document.getElementById('gorilla-milestones-list');
+                    var msTypes = <?php echo wp_json_encode($ms_types); ?>;
+
+                    document.getElementById('gorilla-milestone-add').addEventListener('click', function() {
+                        var i = list.querySelectorAll('.gorilla-milestone-row').length;
+                        var typeOpts = '';
+                        for (var k in msTypes) { typeOpts += '<option value="'+k+'">'+msTypes[k]+'</option>'; }
+                        var html = '<div class="gorilla-milestone-row" style="background:#f9fafb; padding:12px 16px; border-radius:10px; margin-bottom:10px; border:1px solid #e5e7eb;">' +
+                            '<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">' +
+                            '<input type="text" name="milestone_id[]" value="" style="width:110px;" placeholder="ID (key)">' +
+                            '<input type="text" name="milestone_emoji[]" value="" style="width:40px; text-align:center;" title="Emoji">' +
+                            '<input type="text" name="milestone_label[]" value="" style="width:150px;" placeholder="Baslik">' +
+                            '<select name="milestone_type[]" style="width:140px;">' + typeOpts + '</select>' +
+                            '<input type="number" name="milestone_target[]" value="1" min="1" style="width:80px;" title="Hedef">' +
+                            '<input type="number" name="milestone_xp_reward[]" value="0" min="0" style="width:70px;" title="XP Odul"> <span style="font-size:12px; color:#888;">XP</span>' +
+                            '<input type="number" name="milestone_credit_reward[]" value="0" min="0" step="0.01" style="width:70px;" title="Credit Odul"> <span style="font-size:12px; color:#888;">Credit</span>' +
+                            '<button type="button" class="button button-small gorilla-milestone-remove" style="color:#d63638;" title="Sil">\u2715</button>' +
+                            '</div>' +
+                            '<input type="text" name="milestone_desc[]" value="" style="width:100%; margin-top:6px;" placeholder="Aciklama">' +
+                            '</div>';
+                        list.insertAdjacentHTML('beforeend', html);
+                    });
+
+                    document.getElementById('gorilla-milestone-reset').addEventListener('click', function() {
+                        if (!confirm('Kilometre taslari varsayilan degerlere sifirlanacak. Emin misiniz?')) return;
+                        list.innerHTML = '';
+                        var defaults = [
+                            {id:'first_order',label:'Ilk Siparis',emoji:'\uD83D\uDECD\uFE0F',desc:'Ilk siparisini ver',type:'total_orders',target:1,xp:50,credit:0},
+                            {id:'orders_10',label:'10 Siparis',emoji:'\uD83C\uDFC5',desc:'10 siparis tamamla',type:'total_orders',target:10,xp:200,credit:20},
+                            {id:'spend_5000',label:'5000 TL Harcama',emoji:'\uD83D\uDCB0',desc:'Toplam 5000 TL harca',type:'total_spending',target:5000,xp:500,credit:50}
+                        ];
+                        var typeOpts = '';
+                        for (var k in msTypes) { typeOpts += '<option value="'+k+'">'+msTypes[k]+'</option>'; }
+                        defaults.forEach(function(d) {
+                            var opts = '';
+                            for (var k in msTypes) { opts += '<option value="'+k+'"'+(k===d.type?' selected':'')+'>'+msTypes[k]+'</option>'; }
+                            var html = '<div class="gorilla-milestone-row" style="background:#f9fafb; padding:12px 16px; border-radius:10px; margin-bottom:10px; border:1px solid #e5e7eb;">' +
+                                '<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">' +
+                                '<input type="text" name="milestone_id[]" value="'+d.id+'" style="width:110px;" placeholder="ID (key)">' +
+                                '<input type="text" name="milestone_emoji[]" value="'+d.emoji+'" style="width:40px; text-align:center;" title="Emoji">' +
+                                '<input type="text" name="milestone_label[]" value="'+d.label+'" style="width:150px;" placeholder="Baslik">' +
+                                '<select name="milestone_type[]" style="width:140px;">' + opts + '</select>' +
+                                '<input type="number" name="milestone_target[]" value="'+d.target+'" min="1" style="width:80px;" title="Hedef">' +
+                                '<input type="number" name="milestone_xp_reward[]" value="'+d.xp+'" min="0" style="width:70px;" title="XP Odul"> <span style="font-size:12px; color:#888;">XP</span>' +
+                                '<input type="number" name="milestone_credit_reward[]" value="'+d.credit+'" min="0" step="0.01" style="width:70px;" title="Credit Odul"> <span style="font-size:12px; color:#888;">Credit</span>' +
+                                '<button type="button" class="button button-small gorilla-milestone-remove" style="color:#d63638;" title="Sil">\u2715</button>' +
+                                '</div>' +
+                                '<input type="text" name="milestone_desc[]" value="'+d.desc+'" style="width:100%; margin-top:6px;" placeholder="Aciklama">' +
+                                '</div>';
+                            list.insertAdjacentHTML('beforeend', html);
+                        });
+                    });
+
+                    list.addEventListener('click', function(e) {
+                        if (e.target.classList.contains('gorilla-milestone-remove')) {
+                            e.target.closest('.gorilla-milestone-row').remove();
+                        }
+                    });
+                })();
+                </script>
 
                 <h3 style="margin-top:30px; border-bottom:1px solid #f0f0f0; padding-bottom:10px;">🎯 Gorevler / Challenges</h3>
                 <table class="form-table">
@@ -853,15 +998,90 @@ function gorilla_settings_page_render() {
                             <p class="description">Musteriler belirli kosullari karsiladiginda sans carkini cevirebilir.</p>
                         </td>
                     </tr>
-                    <tr>
-                        <th>Odul Bilgisi</th>
-                        <td>
-                            <div style="background:#f0f9ff; padding:12px 16px; border-radius:8px; border-left:4px solid #0ea5e9;">
-                                <em style="color:#666;">Sans carki odulleri su an kod uzerinden yonetilmektedir. Varsayilan oduller: XP bonusu, store credit, indirim kuponu, ucretsiz kargo. Ileride admin panelden odul yapilandirmasi eklenecek.</em>
-                            </div>
-                        </td>
-                    </tr>
                 </table>
+                <?php
+                $spin_prizes = function_exists('gorilla_spin_get_prizes') ? gorilla_spin_get_prizes() : get_option('gorilla_lr_spin_prizes', array());
+                $spin_types = array('xp' => 'XP', 'credit' => 'Credit', 'coupon' => 'Indirim Kuponu', 'free_shipping' => 'Ucretsiz Kargo', 'nothing' => 'Bos (Tekrar Dene)');
+                ?>
+                <p style="margin:10px 0 4px; font-weight:600; color:#374151;">Oduller</p>
+                <p class="description" style="margin-bottom:10px;">Her satir bir cark dilimini temsil eder. Agirlik (weight) degeri yukseldikce odul kazanma olasiligi artar.</p>
+                <div id="gorilla-spin-list">
+                <?php if (!empty($spin_prizes)): foreach ($spin_prizes as $si => $sp): ?>
+                    <div class="gorilla-spin-row" style="background:#f9fafb; padding:10px 14px; border-radius:8px; margin-bottom:8px; border:1px solid #e5e7eb; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                        <input type="text" name="spin_label[]" value="<?php echo esc_attr($sp['label'] ?? ''); ?>" style="width:150px;" placeholder="Etiket">
+                        <select name="spin_type[]" style="width:140px;">
+                            <?php foreach ($spin_types as $stk => $stl): ?>
+                                <option value="<?php echo $stk; ?>" <?php selected($sp['type'] ?? '', $stk); ?>><?php echo $stl; ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <input type="number" name="spin_value[]" value="<?php echo esc_attr($sp['value'] ?? 0); ?>" min="0" step="0.01" style="width:80px;" title="Deger">
+                        <span style="font-size:12px; color:#888;">Deger</span>
+                        <input type="number" name="spin_weight[]" value="<?php echo intval($sp['weight'] ?? 1); ?>" min="1" max="100" style="width:60px;" title="Agirlik">
+                        <span style="font-size:12px; color:#888;">Agirlik</span>
+                        <button type="button" class="button button-small gorilla-spin-remove" style="color:#d63638;" title="Sil">&#10005;</button>
+                    </div>
+                <?php endforeach; endif; ?>
+                </div>
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                    <button type="button" class="button" id="gorilla-spin-add">+ Odul Ekle</button>
+                    <button type="button" class="button" id="gorilla-spin-reset" style="color:#b45309;">Varsayilanlara Sifirla</button>
+                </div>
+                <script>
+                (function(){
+                    var list = document.getElementById('gorilla-spin-list');
+                    var spinTypes = <?php echo wp_json_encode($spin_types); ?>;
+
+                    document.getElementById('gorilla-spin-add').addEventListener('click', function() {
+                        var opts = '';
+                        for (var k in spinTypes) { opts += '<option value="'+k+'">'+spinTypes[k]+'</option>'; }
+                        var html = '<div class="gorilla-spin-row" style="background:#f9fafb; padding:10px 14px; border-radius:8px; margin-bottom:8px; border:1px solid #e5e7eb; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">' +
+                            '<input type="text" name="spin_label[]" value="" style="width:150px;" placeholder="Etiket">' +
+                            '<select name="spin_type[]" style="width:140px;">' + opts + '</select>' +
+                            '<input type="number" name="spin_value[]" value="0" min="0" step="0.01" style="width:80px;" title="Deger">' +
+                            '<span style="font-size:12px; color:#888;">Deger</span>' +
+                            '<input type="number" name="spin_weight[]" value="10" min="1" max="100" style="width:60px;" title="Agirlik">' +
+                            '<span style="font-size:12px; color:#888;">Agirlik</span>' +
+                            '<button type="button" class="button button-small gorilla-spin-remove" style="color:#d63638;" title="Sil">\u2715</button>' +
+                            '</div>';
+                        list.insertAdjacentHTML('beforeend', html);
+                    });
+
+                    document.getElementById('gorilla-spin-reset').addEventListener('click', function() {
+                        if (!confirm('Sans carki odulleri varsayilan degerlere sifirlanacak. Emin misiniz?')) return;
+                        list.innerHTML = '';
+                        var defaults = [
+                            {label:'10 XP',type:'xp',value:10,weight:30},
+                            {label:'25 XP',type:'xp',value:25,weight:20},
+                            {label:'50 XP',type:'xp',value:50,weight:10},
+                            {label:'5 TL Credit',type:'credit',value:5,weight:15},
+                            {label:'10 TL Credit',type:'credit',value:10,weight:8},
+                            {label:'Ucretsiz Kargo',type:'free_shipping',value:0,weight:7},
+                            {label:'%10 Indirim',type:'coupon',value:10,weight:5},
+                            {label:'Tekrar Dene',type:'nothing',value:0,weight:5}
+                        ];
+                        defaults.forEach(function(d) {
+                            var opts = '';
+                            for (var k in spinTypes) { opts += '<option value="'+k+'"'+(k===d.type?' selected':'')+'>'+spinTypes[k]+'</option>'; }
+                            var html = '<div class="gorilla-spin-row" style="background:#f9fafb; padding:10px 14px; border-radius:8px; margin-bottom:8px; border:1px solid #e5e7eb; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">' +
+                                '<input type="text" name="spin_label[]" value="'+d.label+'" style="width:150px;" placeholder="Etiket">' +
+                                '<select name="spin_type[]" style="width:140px;">' + opts + '</select>' +
+                                '<input type="number" name="spin_value[]" value="'+d.value+'" min="0" step="0.01" style="width:80px;" title="Deger">' +
+                                '<span style="font-size:12px; color:#888;">Deger</span>' +
+                                '<input type="number" name="spin_weight[]" value="'+d.weight+'" min="1" max="100" style="width:60px;" title="Agirlik">' +
+                                '<span style="font-size:12px; color:#888;">Agirlik</span>' +
+                                '<button type="button" class="button button-small gorilla-spin-remove" style="color:#d63638;" title="Sil">\u2715</button>' +
+                                '</div>';
+                            list.insertAdjacentHTML('beforeend', html);
+                        });
+                    });
+
+                    list.addEventListener('click', function(e) {
+                        if (e.target.classList.contains('gorilla-spin-remove')) {
+                            e.target.closest('.gorilla-spin-row').remove();
+                        }
+                    });
+                })();
+                </script>
 
                 <h3 style="margin-top:30px; border-bottom:1px solid #f0f0f0; padding-bottom:10px;">🛍️ Puan Dukkani (Points Shop)</h3>
                 <table class="form-table">
@@ -873,6 +1093,99 @@ function gorilla_settings_page_render() {
                         </td>
                     </tr>
                 </table>
+                <?php
+                $shop_rewards = function_exists('gorilla_shop_get_rewards') ? gorilla_shop_get_rewards() : get_option('gorilla_lr_points_shop_rewards', array());
+                $shop_types = array('coupon' => 'Indirim Kuponu', 'free_shipping' => 'Ucretsiz Kargo');
+                $shop_coupon_types = array('fixed_cart' => 'Sabit Tutar (TL)', 'percent' => 'Yuzde (%)');
+                ?>
+                <p style="margin:10px 0 4px; font-weight:600; color:#374151;">Oduller</p>
+                <p class="description" style="margin-bottom:10px;">Musterilerin XP karsiliginda satin alabilecegi oduller. Her odul icin benzersiz bir ID belirleyin.</p>
+                <div id="gorilla-shop-list">
+                <?php if (!empty($shop_rewards)): foreach ($shop_rewards as $ri => $rw): ?>
+                    <div class="gorilla-shop-row" style="background:#f9fafb; padding:10px 14px; border-radius:8px; margin-bottom:8px; border:1px solid #e5e7eb; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                        <input type="text" name="shop_id[]" value="<?php echo esc_attr($rw['id'] ?? ''); ?>" style="width:110px;" placeholder="ID (key)">
+                        <input type="text" name="shop_label[]" value="<?php echo esc_attr($rw['label'] ?? ''); ?>" style="width:180px;" placeholder="Etiket">
+                        <input type="number" name="shop_xp_cost[]" value="<?php echo intval($rw['xp_cost'] ?? 100); ?>" min="1" style="width:70px;" title="XP Maliyeti">
+                        <span style="font-size:12px; color:#888;">XP</span>
+                        <select name="shop_type[]" style="width:130px;">
+                            <?php foreach ($shop_types as $rtk => $rtl): ?>
+                                <option value="<?php echo $rtk; ?>" <?php selected($rw['type'] ?? '', $rtk); ?>><?php echo $rtl; ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <select name="shop_coupon_type[]" style="width:120px;">
+                            <?php foreach ($shop_coupon_types as $ctk => $ctl): ?>
+                                <option value="<?php echo $ctk; ?>" <?php selected($rw['coupon_type'] ?? '', $ctk); ?>><?php echo $ctl; ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <input type="number" name="shop_coupon_amount[]" value="<?php echo esc_attr($rw['coupon_amount'] ?? 0); ?>" min="0" step="0.01" style="width:70px;" title="Kupon Tutari">
+                        <span style="font-size:12px; color:#888;">Tutar</span>
+                        <button type="button" class="button button-small gorilla-shop-remove" style="color:#d63638;" title="Sil">&#10005;</button>
+                    </div>
+                <?php endforeach; endif; ?>
+                </div>
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                    <button type="button" class="button" id="gorilla-shop-add">+ Odul Ekle</button>
+                    <button type="button" class="button" id="gorilla-shop-reset" style="color:#b45309;">Varsayilanlara Sifirla</button>
+                </div>
+                <script>
+                (function(){
+                    var list = document.getElementById('gorilla-shop-list');
+                    var shopTypes = <?php echo wp_json_encode($shop_types); ?>;
+                    var shopCouponTypes = <?php echo wp_json_encode($shop_coupon_types); ?>;
+
+                    document.getElementById('gorilla-shop-add').addEventListener('click', function() {
+                        var tOpts = '', cOpts = '';
+                        for (var k in shopTypes) { tOpts += '<option value="'+k+'">'+shopTypes[k]+'</option>'; }
+                        for (var k in shopCouponTypes) { cOpts += '<option value="'+k+'">'+shopCouponTypes[k]+'</option>'; }
+                        var html = '<div class="gorilla-shop-row" style="background:#f9fafb; padding:10px 14px; border-radius:8px; margin-bottom:8px; border:1px solid #e5e7eb; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">' +
+                            '<input type="text" name="shop_id[]" value="" style="width:110px;" placeholder="ID (key)">' +
+                            '<input type="text" name="shop_label[]" value="" style="width:180px;" placeholder="Etiket">' +
+                            '<input type="number" name="shop_xp_cost[]" value="100" min="1" style="width:70px;" title="XP Maliyeti">' +
+                            '<span style="font-size:12px; color:#888;">XP</span>' +
+                            '<select name="shop_type[]" style="width:130px;">' + tOpts + '</select>' +
+                            '<select name="shop_coupon_type[]" style="width:120px;">' + cOpts + '</select>' +
+                            '<input type="number" name="shop_coupon_amount[]" value="0" min="0" step="0.01" style="width:70px;" title="Kupon Tutari">' +
+                            '<span style="font-size:12px; color:#888;">Tutar</span>' +
+                            '<button type="button" class="button button-small gorilla-shop-remove" style="color:#d63638;" title="Sil">\u2715</button>' +
+                            '</div>';
+                        list.insertAdjacentHTML('beforeend', html);
+                    });
+
+                    document.getElementById('gorilla-shop-reset').addEventListener('click', function() {
+                        if (!confirm('Puan dukkani odulleri varsayilan degerlere sifirlanacak. Emin misiniz?')) return;
+                        list.innerHTML = '';
+                        var defaults = [
+                            {id:'coupon_5',label:'5 TL Indirim Kuponu',xp_cost:100,type:'coupon',coupon_type:'fixed_cart',coupon_amount:5},
+                            {id:'coupon_10',label:'10 TL Indirim Kuponu',xp_cost:200,type:'coupon',coupon_type:'fixed_cart',coupon_amount:10},
+                            {id:'coupon_pct_10',label:'%10 Indirim Kuponu',xp_cost:300,type:'coupon',coupon_type:'percent',coupon_amount:10},
+                            {id:'free_shipping',label:'Ucretsiz Kargo Kuponu',xp_cost:150,type:'free_shipping',coupon_type:'fixed_cart',coupon_amount:0}
+                        ];
+                        defaults.forEach(function(d) {
+                            var tOpts = '', cOpts = '';
+                            for (var k in shopTypes) { tOpts += '<option value="'+k+'"'+(k===d.type?' selected':'')+'>'+shopTypes[k]+'</option>'; }
+                            for (var k in shopCouponTypes) { cOpts += '<option value="'+k+'"'+(k===d.coupon_type?' selected':'')+'>'+shopCouponTypes[k]+'</option>'; }
+                            var html = '<div class="gorilla-shop-row" style="background:#f9fafb; padding:10px 14px; border-radius:8px; margin-bottom:8px; border:1px solid #e5e7eb; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">' +
+                                '<input type="text" name="shop_id[]" value="'+d.id+'" style="width:110px;" placeholder="ID (key)">' +
+                                '<input type="text" name="shop_label[]" value="'+d.label+'" style="width:180px;" placeholder="Etiket">' +
+                                '<input type="number" name="shop_xp_cost[]" value="'+d.xp_cost+'" min="1" style="width:70px;" title="XP Maliyeti">' +
+                                '<span style="font-size:12px; color:#888;">XP</span>' +
+                                '<select name="shop_type[]" style="width:130px;">' + tOpts + '</select>' +
+                                '<select name="shop_coupon_type[]" style="width:120px;">' + cOpts + '</select>' +
+                                '<input type="number" name="shop_coupon_amount[]" value="'+d.coupon_amount+'" min="0" step="0.01" style="width:70px;" title="Kupon Tutari">' +
+                                '<span style="font-size:12px; color:#888;">Tutar</span>' +
+                                '<button type="button" class="button button-small gorilla-shop-remove" style="color:#d63638;" title="Sil">\u2715</button>' +
+                                '</div>';
+                            list.insertAdjacentHTML('beforeend', html);
+                        });
+                    });
+
+                    list.addEventListener('click', function(e) {
+                        if (e.target.classList.contains('gorilla-shop-remove')) {
+                            e.target.closest('.gorilla-shop-row').remove();
+                        }
+                    });
+                })();
+                </script>
             </div>
 
             <!-- SOSYAL PAYLASIM & QR KOD -->

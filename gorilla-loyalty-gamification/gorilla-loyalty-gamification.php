@@ -3,7 +3,7 @@
  * Plugin Name: Gorilla Loyalty & Gamification
  * Plugin URI: https://www.gorillacustomcards.com
  * Description: XP/level, tier, badges, spin wheel, challenges, leaderboard, milestones, social share, QR, points shop, churn prediction, smart coupon, VIP early access gamification sistemi.
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: Mert Donmezler
  * Author URI: https://www.gorillacustomcards.com
  * Text Domain: gorilla-loyalty
@@ -19,7 +19,7 @@
 
 if (!defined('ABSPATH')) exit;
 
-define('GORILLA_LG_VERSION', '1.1.0');
+define('GORILLA_LG_VERSION', '1.2.0');
 define('GORILLA_LG_FILE', __FILE__);
 define('GORILLA_LG_PATH', plugin_dir_path(__FILE__));
 define('GORILLA_LG_URL', plugin_dir_url(__FILE__));
@@ -248,6 +248,7 @@ register_activation_hook(__FILE__, function() {
         'gorilla_lr_credit_expiry_days'      => 0,
         'gorilla_lr_credit_expiry_warn_days' => 7,
         'gorilla_lr_coupon_enabled'          => 'yes',
+        'gorilla_lr_meta_retention_days'    => 90,
     );
 
     foreach ($defaults as $key => $value) {
@@ -264,6 +265,7 @@ register_activation_hook(__FILE__, function() {
 register_deactivation_hook(__FILE__, function() {
     wp_clear_scheduled_hook('gorilla_lr_daily_tier_check');
     wp_clear_scheduled_hook('gorilla_sc_daily_check');
+    wp_clear_scheduled_hook('gorilla_meta_cleanup_weekly');
     flush_rewrite_rules();
 });
 
@@ -279,8 +281,13 @@ add_action('init', function() {
 add_action('wp_enqueue_scripts', function() {
     if (is_admin()) return;
 
-    wp_enqueue_style('gorilla-lg-frontend', GORILLA_LG_URL . 'assets/css/loyalty.css', array(), GORILLA_LG_VERSION);
-    wp_enqueue_script('gorilla-lg-frontend', GORILLA_LG_URL . 'assets/js/loyalty.js', array('jquery'), GORILLA_LG_VERSION, true);
+    // Shared base styles & scripts (used by both LG and RA plugins)
+    wp_enqueue_style('gorilla-base', GORILLA_LG_URL . 'assets/css/gorilla-base.css', array(), GORILLA_LG_VERSION);
+    wp_enqueue_script('gorilla-base', GORILLA_LG_URL . 'assets/js/gorilla-base.js', array(), GORILLA_LG_VERSION, true);
+
+    // Loyalty-specific styles & scripts (depend on base)
+    wp_enqueue_style('gorilla-lg-frontend', GORILLA_LG_URL . 'assets/css/loyalty.css', array('gorilla-base'), GORILLA_LG_VERSION);
+    wp_enqueue_script('gorilla-lg-frontend', GORILLA_LG_URL . 'assets/js/loyalty.js', array('jquery', 'gorilla-base'), GORILLA_LG_VERSION, true);
 
     $loyalty_url = function_exists('wc_get_account_endpoint_url') ? wc_get_account_endpoint_url('gorilla-loyalty') : '';
 
@@ -295,8 +302,8 @@ add_action('wp_enqueue_scripts', function() {
 
     // Store Credit assets (checkout + account pages only)
     if ((function_exists('is_checkout') && is_checkout()) || (function_exists('is_account_page') && is_account_page())) {
-        wp_enqueue_style('gorilla-sc-frontend', GORILLA_LG_URL . 'assets/css/store-credit.css', array(), GORILLA_LG_VERSION);
-        wp_enqueue_script('gorilla-sc-frontend', GORILLA_LG_URL . 'assets/js/store-credit.js', array('jquery'), GORILLA_LG_VERSION, true);
+        wp_enqueue_style('gorilla-sc-frontend', GORILLA_LG_URL . 'assets/css/store-credit.css', array('gorilla-base'), GORILLA_LG_VERSION);
+        wp_enqueue_script('gorilla-sc-frontend', GORILLA_LG_URL . 'assets/js/store-credit.js', array('jquery', 'gorilla-base'), GORILLA_LG_VERSION, true);
         wp_localize_script('gorilla-sc-frontend', 'gorilla_sc', array(
             'ajax_url'        => admin_url('admin-ajax.php'),
             'credit_nonce'    => wp_create_nonce('gorilla_credit_toggle'),
@@ -318,6 +325,14 @@ add_action('init', function() {
         wp_schedule_event(time(), 'daily', 'gorilla_sc_daily_check');
     }
 }, 20);
+
+// Weekly meta cleanup cron
+add_action('init', function() {
+    if (!wp_next_scheduled('gorilla_meta_cleanup_weekly')) {
+        wp_schedule_event(time(), 'weekly', 'gorilla_meta_cleanup_weekly');
+    }
+}, 20);
+add_action('gorilla_meta_cleanup_weekly', 'gorilla_meta_cleanup');
 
 add_action('gorilla_lr_daily_tier_check', function() {
     delete_transient('gorilla_lr_tier_stats');
@@ -512,6 +527,186 @@ function gorilla_smart_coupon_fav_category($user_id) {
     if (empty($cat_counts)) return null;
     usort($cat_counts, function($a, $b) { return $b['count'] - $a['count']; });
     return $cat_counts[0];
+}
+
+// ── Meta Cleanup (weekly cron) ────────────────────────────
+/**
+ * Clean up old dated user meta keys to prevent usermeta table bloat.
+ * Runs weekly via WP-Cron. Removes meta keys older than retention period.
+ *
+ * Patterns cleaned:
+ *   _gorilla_share_{platform}_{YYYY-MM-DD}  - social share daily guards
+ *   _gorilla_churn_reengaged_{YYYY-QN}      - churn quarterly guards
+ *   _gorilla_smart_coupon_{YYYY-MM}          - smart coupon monthly guards
+ *   _gorilla_xp_expiry_{YYYY-MM}            - XP expiry monthly guards
+ *   _gorilla_xp_warn_{YYYY-MM}              - XP expiry warn guards
+ *   _gorilla_birthday_awarded_{YYYY}        - birthday yearly guards
+ *   _gorilla_anniversary_year_{YYYY}        - anniversary yearly guards
+ *   _gorilla_transfer_today_{YYYY-MM-DD}    - transfer daily guards
+ *   _gorilla_transfer_total_{YYYY-MM-DD}    - transfer daily total guards
+ */
+function gorilla_meta_cleanup() {
+    global $wpdb;
+
+    $retention_days = absint(get_option('gorilla_lr_meta_retention_days', 90));
+    if ($retention_days < 7) $retention_days = 90; // sanity floor
+    $batch_limit = 1000;
+
+    $cutoff_date    = gmdate('Y-m-d', strtotime("-{$retention_days} days"));
+    $cutoff_month   = gmdate('Y-m', strtotime("-{$retention_days} days"));
+    $cutoff_year    = gmdate('Y', strtotime("-{$retention_days} days"));
+    $cutoff_quarter = $cutoff_year . '-Q' . ceil(intval(gmdate('m', strtotime("-{$retention_days} days"))) / 3);
+
+    $total_deleted = 0;
+
+    // 1. Social share keys: _gorilla_share_{platform}_{YYYY-MM-DD}
+    $share_keys = $wpdb->get_col(
+        "SELECT DISTINCT meta_key FROM {$wpdb->usermeta} WHERE meta_key LIKE '_gorilla\_share\_%'"
+    );
+    $old_share_keys = array();
+    foreach ($share_keys as $key) {
+        $date_part = substr($key, -10);
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_part) && $date_part < $cutoff_date) {
+            $old_share_keys[] = $key;
+        }
+    }
+    if (!empty($old_share_keys)) {
+        foreach (array_chunk($old_share_keys, $batch_limit) as $chunk) {
+            $placeholders = implode(',', array_fill(0, count($chunk), '%s'));
+            $total_deleted += intval($wpdb->query($wpdb->prepare(
+                "DELETE FROM {$wpdb->usermeta} WHERE meta_key IN ($placeholders)",
+                ...$chunk
+            )));
+        }
+    }
+
+    // 2. Transfer daily keys: _gorilla_transfer_today_{YYYY-MM-DD}, _gorilla_transfer_total_{YYYY-MM-DD}
+    foreach (array('_gorilla\_transfer\_today\_%', '_gorilla\_transfer\_total\_%') as $pattern) {
+        $keys = $wpdb->get_col(
+            $wpdb->prepare("SELECT DISTINCT meta_key FROM {$wpdb->usermeta} WHERE meta_key LIKE %s", str_replace('\\', '', $pattern))
+        );
+        $old_keys = array();
+        foreach ($keys as $key) {
+            $date_part = substr($key, -10);
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_part) && $date_part < $cutoff_date) {
+                $old_keys[] = $key;
+            }
+        }
+        if (!empty($old_keys)) {
+            foreach (array_chunk($old_keys, $batch_limit) as $chunk) {
+                $placeholders = implode(',', array_fill(0, count($chunk), '%s'));
+                $total_deleted += intval($wpdb->query($wpdb->prepare(
+                    "DELETE FROM {$wpdb->usermeta} WHERE meta_key IN ($placeholders)",
+                    ...$chunk
+                )));
+            }
+        }
+    }
+
+    // 3. Smart coupon monthly keys: _gorilla_smart_coupon_{YYYY-MM}
+    $coupon_keys = $wpdb->get_col(
+        "SELECT DISTINCT meta_key FROM {$wpdb->usermeta} WHERE meta_key LIKE '_gorilla\_smart\_coupon\_%'"
+    );
+    $old_coupon_keys = array();
+    foreach ($coupon_keys as $key) {
+        $month_part = str_replace('_gorilla_smart_coupon_', '', $key);
+        if (preg_match('/^\d{4}-\d{2}$/', $month_part) && $month_part < $cutoff_month) {
+            $old_coupon_keys[] = $key;
+        }
+    }
+    if (!empty($old_coupon_keys)) {
+        $placeholders = implode(',', array_fill(0, count($old_coupon_keys), '%s'));
+        $total_deleted += intval($wpdb->query($wpdb->prepare(
+            "DELETE FROM {$wpdb->usermeta} WHERE meta_key IN ($placeholders)",
+            ...$old_coupon_keys
+        )));
+    }
+
+    // 4. XP expiry/warn monthly keys: _gorilla_xp_expiry_{YYYY-MM}, _gorilla_xp_warn_{YYYY-MM}
+    foreach (array('_gorilla_xp_expiry_', '_gorilla_xp_warn_') as $prefix) {
+        $escaped = str_replace('_', '\_', $prefix);
+        $keys = $wpdb->get_col(
+            "SELECT DISTINCT meta_key FROM {$wpdb->usermeta} WHERE meta_key LIKE '{$escaped}%'"
+        );
+        $old_keys = array();
+        foreach ($keys as $key) {
+            $month_part = str_replace($prefix, '', $key);
+            if (preg_match('/^\d{4}-\d{2}$/', $month_part) && $month_part < $cutoff_month) {
+                $old_keys[] = $key;
+            }
+        }
+        if (!empty($old_keys)) {
+            $placeholders = implode(',', array_fill(0, count($old_keys), '%s'));
+            $total_deleted += intval($wpdb->query($wpdb->prepare(
+                "DELETE FROM {$wpdb->usermeta} WHERE meta_key IN ($placeholders)",
+                ...$old_keys
+            )));
+        }
+    }
+
+    // 5. Churn reengagement quarterly keys: _gorilla_churn_reengaged_{YYYY-QN}
+    $churn_keys = $wpdb->get_col(
+        "SELECT DISTINCT meta_key FROM {$wpdb->usermeta} WHERE meta_key LIKE '_gorilla\_churn\_reengaged\_%'"
+    );
+    $old_churn_keys = array();
+    foreach ($churn_keys as $key) {
+        $quarter_part = str_replace('_gorilla_churn_reengaged_', '', $key);
+        if (preg_match('/^\d{4}-Q\d$/', $quarter_part) && $quarter_part < $cutoff_quarter) {
+            $old_churn_keys[] = $key;
+        }
+    }
+    if (!empty($old_churn_keys)) {
+        $placeholders = implode(',', array_fill(0, count($old_churn_keys), '%s'));
+        $total_deleted += intval($wpdb->query($wpdb->prepare(
+            "DELETE FROM {$wpdb->usermeta} WHERE meta_key IN ($placeholders)",
+            ...$old_churn_keys
+        )));
+    }
+
+    // 6. Birthday yearly keys: _gorilla_birthday_awarded_{YYYY}
+    $bday_keys = $wpdb->get_col(
+        "SELECT DISTINCT meta_key FROM {$wpdb->usermeta} WHERE meta_key LIKE '_gorilla\_birthday\_awarded\_%'"
+    );
+    $old_bday_keys = array();
+    foreach ($bday_keys as $key) {
+        $year_part = str_replace('_gorilla_birthday_awarded_', '', $key);
+        if (preg_match('/^\d{4}$/', $year_part) && $year_part < $cutoff_year) {
+            $old_bday_keys[] = $key;
+        }
+    }
+    if (!empty($old_bday_keys)) {
+        $placeholders = implode(',', array_fill(0, count($old_bday_keys), '%s'));
+        $total_deleted += intval($wpdb->query($wpdb->prepare(
+            "DELETE FROM {$wpdb->usermeta} WHERE meta_key IN ($placeholders)",
+            ...$old_bday_keys
+        )));
+    }
+
+    // 7. Anniversary yearly keys: _gorilla_anniversary_year_{YYYY}
+    $anniv_keys = $wpdb->get_col(
+        "SELECT DISTINCT meta_key FROM {$wpdb->usermeta} WHERE meta_key LIKE '_gorilla\_anniversary\_year\_%'"
+    );
+    $old_anniv_keys = array();
+    foreach ($anniv_keys as $key) {
+        $year_part = str_replace('_gorilla_anniversary_year_', '', $key);
+        if (preg_match('/^\d{4}$/', $year_part) && $year_part < $cutoff_year) {
+            $old_anniv_keys[] = $key;
+        }
+    }
+    if (!empty($old_anniv_keys)) {
+        $placeholders = implode(',', array_fill(0, count($old_anniv_keys), '%s'));
+        $total_deleted += intval($wpdb->query($wpdb->prepare(
+            "DELETE FROM {$wpdb->usermeta} WHERE meta_key IN ($placeholders)",
+            ...$old_anniv_keys
+        )));
+    }
+
+    // Log result
+    if ($total_deleted > 0) {
+        error_log(sprintf('Gorilla LG meta cleanup: %d stale meta rows deleted (retention: %d days).', $total_deleted, $retention_days));
+    }
+
+    update_option('gorilla_lr_meta_cleanup_last_run', current_time('mysql'), false);
 }
 
 // ── Footer Loyalty Bar ───────────────────────────────────

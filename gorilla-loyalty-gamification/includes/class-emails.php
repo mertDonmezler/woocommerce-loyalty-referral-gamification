@@ -125,23 +125,9 @@ function gorilla_email_birthday($user_id, $xp_amount, $credit_amount) {
     gorilla_send_email($user->user_email, $subject, $message);
 }
 
-// ── Uyelik Yildonumu E-postasi ──────────────────────────
-function gorilla_email_anniversary($user_id, $years, $xp_amount, $credit_amount) {
-    $email = gorilla_get_wc_email('Gorilla_Email_Anniversary');
-    if ($email) {
-        $email->trigger($user_id, $years, $xp_amount, $credit_amount);
-        return;
-    }
-    $user = get_userdata($user_id);
-    if (!$user) return;
-    $shop_url = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url();
-    $subject = sprintf('%d. Yildonumunuz Kutlu Olsun! - %s', $years, get_bloginfo('name'));
-    $message = gorilla_email_template(sprintf('%d. Uyelik Yildonumunuz!', $years), sprintf(
-        '<p>Merhaba %s,</p><p>%d. yiliniz kutlu olsun!</p><p><a href="%s">Alisverise Basla</a></p>',
-        esc_html($user->display_name), $years, esc_url($shop_url)
-    ));
-    gorilla_send_email($user->user_email, $subject, $message);
-}
+// NOTE: gorilla_email_anniversary() was removed as dead code -- the anniversary
+// XP/credit awards in class-xp.php do not send emails (they use WC email classes
+// directly via the Gorilla_Email_Anniversary WC email class in class-wc-emails.php).
 
 // ── Churn Re-engagement E-postasi ───────────────────────
 function gorilla_email_churn_reengagement($user_id, $bonus_credit, $bonus_xp) {

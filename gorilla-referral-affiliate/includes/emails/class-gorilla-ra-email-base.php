@@ -8,7 +8,8 @@
 
 if (!defined('ABSPATH')) exit;
 
-abstract class Gorilla_Email_Base extends WC_Email {
+if (!class_exists('Gorilla_RA_Email_Base')) {
+abstract class Gorilla_RA_Email_Base extends WC_Email {
 
     /**
      * Email body icerigi (HTML).
@@ -105,3 +106,4 @@ abstract class Gorilla_Email_Base extends WC_Email {
         return str_replace($find, $replace, parent::format_string($string));
     }
 }
+} // end class_exists Gorilla_RA_Email_Base
