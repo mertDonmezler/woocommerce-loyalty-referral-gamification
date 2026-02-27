@@ -135,7 +135,8 @@
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
+    #gorilla-credit-toggle *, #gorilla-credit-toggle *::before, #gorilla-credit-toggle *::after,
+    .gorilla-sc-toast {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;

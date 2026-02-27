@@ -360,14 +360,6 @@ function gorilla_affiliate_give_credit($order_id) {
     $rate = gorilla_affiliate_get_effective_rate($referrer_id);
     $commission = round($order_total * ($rate / 100), 2);
 
-    // Seasonal bonus carpani uygula
-    if (function_exists('gorilla_xp_get_bonus_multiplier')) {
-        $multiplier = gorilla_xp_get_bonus_multiplier();
-        if ($multiplier > 1) {
-            $commission = round($commission * $multiplier, 2);
-        }
-    }
-
     if ($commission <= 0) {
         return;
     }

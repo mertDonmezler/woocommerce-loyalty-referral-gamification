@@ -453,6 +453,12 @@ add_action('woocommerce_order_status_completed', function($order_id) {
         gorilla_badge_check_all($order->get_customer_id());
     }
 }, 30);
+add_action('woocommerce_order_status_processing', function($order_id) {
+    $order = wc_get_order($order_id);
+    if ($order && $order->get_customer_id()) {
+        gorilla_badge_check_all($order->get_customer_id());
+    }
+}, 30);
 
 // ══════════════════════════════════════════════════════════
 // SANS CARKI (F4)

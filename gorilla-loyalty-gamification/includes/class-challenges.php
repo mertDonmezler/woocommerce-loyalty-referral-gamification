@@ -219,6 +219,7 @@ function gorilla_challenges_award_reward($user_id, $challenge) {
 // ── WooCommerce Hooks ────────────────────────────────────
 
 add_action('woocommerce_order_status_completed', 'gorilla_challenges_on_order_complete', 25);
+add_action('woocommerce_order_status_processing', 'gorilla_challenges_on_order_complete', 25);
 function gorilla_challenges_on_order_complete($order_id) {
     $order = wc_get_order($order_id);
     if (!$order) return;

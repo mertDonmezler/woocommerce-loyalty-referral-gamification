@@ -215,11 +215,14 @@ if (!function_exists('gorilla_credit_checkout_ui')) {
         if (WC()->session) {
             $session_amount = floatval(WC()->session->get('gorilla_credit_amount', 0));
         }
-        // Clamp to available credit
-        $session_amount = min($session_amount, $credit);
+        // Cap slider max to min(credit, cart total) so user can't select more than order value
+        $cart_total = WC()->cart ? floatval(WC()->cart->get_total('edit')) : 0;
+        $slider_max = ($cart_total > 0) ? min($credit, $cart_total) : $credit;
+        // Clamp to available max
+        $session_amount = min($session_amount, $slider_max);
 
         ?>
-        <div id="gorilla-credit-toggle">
+        <div id="gorilla-credit-toggle" data-cart-total="<?php echo esc_attr($cart_total); ?>">
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
                 <span style="font-weight:600; color:#1f2937;">Store Credit Kullan</span>
                 <span style="margin-left:auto; background:#22c55e; color:#fff; padding:4px 14px; border-radius:20px; font-size:14px;">
@@ -227,7 +230,7 @@ if (!function_exists('gorilla_credit_checkout_ui')) {
                 </span>
             </div>
             <div style="display:flex; align-items:center; gap:12px;">
-                <input type="range" id="gorilla_credit_slider" min="0" max="<?php echo esc_attr($credit); ?>" step="0.01" value="<?php echo esc_attr($session_amount); ?>" style="flex:1; accent-color:#22c55e; cursor:pointer;">
+                <input type="range" id="gorilla_credit_slider" min="0" max="<?php echo esc_attr($slider_max); ?>" step="0.01" value="<?php echo esc_attr($session_amount); ?>" data-credit="<?php echo esc_attr($credit); ?>" style="flex:1; accent-color:#22c55e; cursor:pointer;">
                 <span id="gorilla_credit_display" style="min-width:70px; text-align:right; font-weight:600; color:#22c55e; font-size:15px;"><?php echo wc_price($session_amount); ?></span>
             </div>
             <p style="margin:6px 0 0 0; font-size:12px; color:#4ade80;">Kullanmak istediginiz miktari secin</p>
@@ -243,9 +246,10 @@ if (!has_action('wp_ajax_gorilla_toggle_credit')) {
         check_ajax_referer('gorilla_credit_toggle', 'nonce');
         $amount = floatval($_POST['amount'] ?? 0);
 
-        // Clamp to 0 and available credit
+        // Clamp to 0, available credit, and cart total
         $max_credit = gorilla_credit_get_balance(get_current_user_id());
-        $amount = max(0, min($amount, $max_credit));
+        $cart_total = (function_exists('WC') && WC() && WC()->cart) ? floatval(WC()->cart->get_total('edit')) : PHP_FLOAT_MAX;
+        $amount = max(0, min($amount, $max_credit, $cart_total));
 
         if (function_exists('WC') && WC() && WC()->session) {
             WC()->session->set('gorilla_credit_amount', $amount);

@@ -516,14 +516,6 @@ function gorilla_referral_process_submission() {
     $order_total = floatval($order->get_total());
     $credit_amount = round($order_total * ($rate / 100), 2);
 
-    // Seasonal bonus carpani uygula (from loyalty plugin if available)
-    if (function_exists('gorilla_xp_get_bonus_multiplier')) {
-        $multiplier = gorilla_xp_get_bonus_multiplier();
-        if ($multiplier > 1) {
-            $credit_amount = round($credit_amount * $multiplier, 2);
-        }
-    }
-
     // Basvuru olustur
     $ref_id = wp_insert_post(array(
         'post_type'   => 'gorilla_referral',

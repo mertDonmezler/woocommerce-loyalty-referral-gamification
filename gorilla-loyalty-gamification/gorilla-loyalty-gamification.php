@@ -3,7 +3,7 @@
  * Plugin Name: Gorilla Loyalty & Gamification
  * Plugin URI: https://www.gorillacustomcards.com
  * Description: XP/level, tier, badges, spin wheel, challenges, leaderboard, milestones, social share, QR, points shop, churn prediction, smart coupon, VIP early access gamification sistemi.
- * Version: 1.0.1
+ * Version: 1.1.0
  * Author: Mert Donmezler
  * Author URI: https://www.gorillacustomcards.com
  * Text Domain: gorilla-loyalty
@@ -19,7 +19,7 @@
 
 if (!defined('ABSPATH')) exit;
 
-define('GORILLA_LG_VERSION', '1.0.1');
+define('GORILLA_LG_VERSION', '1.1.0');
 define('GORILLA_LG_FILE', __FILE__);
 define('GORILLA_LG_PATH', plugin_dir_path(__FILE__));
 define('GORILLA_LG_URL', plugin_dir_url(__FILE__));
@@ -337,23 +337,46 @@ function gorilla_churn_weekly_check() {
     $churn_months = intval(get_option('gorilla_lr_churn_months', 3));
     $cutoff_date = gmdate('Y-m-d', strtotime("-{$churn_months} months"));
 
-    $at_risk = $wpdb->get_results($wpdb->prepare(
-        "SELECT DISTINCT pm.meta_value as customer_id
-         FROM {$wpdb->posts} p
-         INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_customer_user'
-         WHERE p.post_type IN ('shop_order', 'shop_order_placeholder')
-         AND p.post_status IN ('wc-completed', 'wc-processing')
-         AND pm.meta_value > 0
-         AND pm.meta_value NOT IN (
-             SELECT DISTINCT pm2.meta_value
-             FROM {$wpdb->posts} p2
-             INNER JOIN {$wpdb->postmeta} pm2 ON p2.ID = pm2.post_id AND pm2.meta_key = '_customer_user'
-             WHERE p2.post_type IN ('shop_order', 'shop_order_placeholder')
-             AND p2.post_status IN ('wc-completed', 'wc-processing')
-             AND p2.post_date >= %s
-         )",
-        $cutoff_date
-    ));
+    // HPOS-compatible query
+    $hpos_enabled = class_exists('Automattic\WooCommerce\Utilities\OrderUtil')
+        && \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled();
+
+    if ($hpos_enabled) {
+        $orders_table = $wpdb->prefix . 'wc_orders';
+        $at_risk = $wpdb->get_results($wpdb->prepare(
+            "SELECT DISTINCT customer_id
+             FROM {$orders_table}
+             WHERE type = 'shop_order'
+             AND status IN ('wc-completed', 'wc-processing')
+             AND customer_id > 0
+             AND customer_id NOT IN (
+                 SELECT DISTINCT customer_id
+                 FROM {$orders_table}
+                 WHERE type = 'shop_order'
+                 AND status IN ('wc-completed', 'wc-processing')
+                 AND date_created_gmt >= %s
+             )",
+            $cutoff_date
+        ));
+    } else {
+        $at_risk = $wpdb->get_results($wpdb->prepare(
+            "SELECT DISTINCT pm.meta_value as customer_id
+             FROM {$wpdb->posts} p
+             INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_customer_user'
+             WHERE p.post_type IN ('shop_order', 'shop_order_placeholder')
+             AND p.post_status IN ('wc-completed', 'wc-processing')
+             AND pm.meta_value > 0
+             AND pm.meta_value NOT IN (
+                 SELECT DISTINCT pm2.meta_value
+                 FROM {$wpdb->posts} p2
+                 INNER JOIN {$wpdb->postmeta} pm2 ON p2.ID = pm2.post_id AND pm2.meta_key = '_customer_user'
+                 WHERE p2.post_type IN ('shop_order', 'shop_order_placeholder')
+                 AND p2.post_status IN ('wc-completed', 'wc-processing')
+                 AND p2.post_date >= %s
+             )",
+            $cutoff_date
+        ));
+    }
 
     if (empty($at_risk)) return;
 
@@ -400,17 +423,35 @@ function gorilla_smart_coupon_check() {
     $churn_months  = intval(get_option('gorilla_lr_churn_months', 3));
     $churn_cutoff  = gmdate('Y-m-d', strtotime("-{$churn_months} months"));
 
-    $candidates = $wpdb->get_results($wpdb->prepare(
-        "SELECT pm.meta_value as customer_id, MAX(p.post_date) as last_order
-         FROM {$wpdb->posts} p
-         INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_customer_user'
-         WHERE p.post_type IN ('shop_order', 'shop_order_placeholder')
-         AND p.post_status IN ('wc-completed', 'wc-processing')
-         AND pm.meta_value > 0
-         GROUP BY pm.meta_value
-         HAVING last_order < %s AND last_order >= %s",
-        $cutoff_date, $churn_cutoff
-    ));
+    // HPOS-compatible query
+    $hpos_enabled_sc = class_exists('Automattic\WooCommerce\Utilities\OrderUtil')
+        && \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled();
+
+    if ($hpos_enabled_sc) {
+        $orders_table = $wpdb->prefix . 'wc_orders';
+        $candidates = $wpdb->get_results($wpdb->prepare(
+            "SELECT customer_id, MAX(date_created_gmt) as last_order
+             FROM {$orders_table}
+             WHERE type = 'shop_order'
+             AND status IN ('wc-completed', 'wc-processing')
+             AND customer_id > 0
+             GROUP BY customer_id
+             HAVING last_order < %s AND last_order >= %s",
+            $cutoff_date, $churn_cutoff
+        ));
+    } else {
+        $candidates = $wpdb->get_results($wpdb->prepare(
+            "SELECT pm.meta_value as customer_id, MAX(p.post_date) as last_order
+             FROM {$wpdb->posts} p
+             INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_customer_user'
+             WHERE p.post_type IN ('shop_order', 'shop_order_placeholder')
+             AND p.post_status IN ('wc-completed', 'wc-processing')
+             AND pm.meta_value > 0
+             GROUP BY pm.meta_value
+             HAVING last_order < %s AND last_order >= %s",
+            $cutoff_date, $churn_cutoff
+        ));
+    }
 
     if (empty($candidates)) return;
 

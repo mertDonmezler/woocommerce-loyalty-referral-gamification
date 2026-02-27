@@ -97,10 +97,43 @@
     }
 
     /**
+     * After WooCommerce updates checkout fragments, recalculate slider max
+     * so it never exceeds the new cart total.
+     */
+    function bindCheckoutUpdate() {
+        if (typeof jQuery === 'undefined') return;
+        jQuery(document.body).on('updated_checkout', function() {
+            var slider = document.getElementById('gorilla_credit_slider');
+            if (!slider) return;
+            var credit = parseFloat(slider.getAttribute('data-credit')) || 0;
+            var wrapper = document.getElementById('gorilla-credit-toggle');
+            var cartTotal = wrapper ? parseFloat(wrapper.getAttribute('data-cart-total')) || credit : credit;
+            // Try to read live cart total from WC order review
+            var totalEl = document.querySelector('.order-total .woocommerce-Price-amount bdi');
+            if (totalEl) {
+                var parsed = parseFloat(totalEl.textContent.replace(/[^\d.,]/g, '').replace(',', '.'));
+                if (!isNaN(parsed) && parsed > 0) cartTotal = parsed;
+            }
+            var newMax = Math.min(credit, cartTotal);
+            slider.max = newMax.toFixed(2);
+            if (parseFloat(slider.value) > newMax) {
+                slider.value = newMax.toFixed(2);
+                var display = document.getElementById('gorilla_credit_display');
+                if (display) {
+                    var config = getConfig();
+                    var symbol = config.currency_symbol || '\u20BA';
+                    display.textContent = newMax.toFixed(2).replace(/\.00$/, '') + ' ' + symbol;
+                }
+            }
+        });
+    }
+
+    /**
      * Initialize all modules on DOM ready.
      */
     function init() {
         initCreditToggle();
+        bindCheckoutUpdate();
     }
 
     if (document.readyState === 'loading') {
