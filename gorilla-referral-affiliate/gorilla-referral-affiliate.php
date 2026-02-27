@@ -3,7 +3,7 @@
  * Plugin Name: Gorilla Referral & Affiliate
  * Plugin URI: https://www.gorillacustomcards.com
  * Description: Video referral sistemi ve affiliate link tracking. Gorilla Loyalty & Gamification ve WooCommerce gerektirir.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Mert Donmezler
  * Author URI: https://www.gorillacustomcards.com
  * Text Domain: gorilla-ra
@@ -22,7 +22,7 @@
 if (!defined('ABSPATH')) exit;
 
 // -- Sabitler --
-define('GORILLA_RA_VERSION', '1.0.0');
+define('GORILLA_RA_VERSION', '1.0.1');
 define('GORILLA_RA_FILE', __FILE__);
 define('GORILLA_RA_PATH', plugin_dir_path(__FILE__));
 define('GORILLA_RA_URL', plugin_dir_url(__FILE__));
@@ -236,8 +236,8 @@ add_action('wp_enqueue_scripts', function() {
 
 // -- Plugin Action Links --
 add_filter('plugin_action_links_' . GORILLA_RA_BASENAME, function($links) {
-    $settings_link = '<a href="' . esc_url(admin_url('admin.php?page=gorilla-referral-settings')) . '">' . esc_html__('Ayarlar', 'gorilla-ra') . '</a>';
-    $dashboard_link = '<a href="' . esc_url(admin_url('admin.php?page=gorilla-referral-admin')) . '">' . esc_html__('Dashboard', 'gorilla-ra') . '</a>';
+    $settings_link = '<a href="' . esc_url(admin_url('admin.php?page=gorilla-ra-settings')) . '">' . esc_html__('Ayarlar', 'gorilla-ra') . '</a>';
+    $dashboard_link = '<a href="' . esc_url(admin_url('admin.php?page=gorilla-ra-dashboard')) . '">' . esc_html__('Dashboard', 'gorilla-ra') . '</a>';
     array_unshift($links, $dashboard_link, $settings_link);
     return $links;
 });

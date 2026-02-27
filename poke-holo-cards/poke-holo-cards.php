@@ -3,7 +3,7 @@
  * Plugin Name: WooCommerce Holo Cards - 3D Holographic Card Effect
  * Plugin URI:  https://github.com/mertDonmezler/poke-holo-cards
  * Description: Add stunning 3D holographic card effects to any image. Supports WooCommerce product images, shortcodes, Gutenberg blocks, and CSS class triggers. Works standalone or with WooCommerce.
- * Version:     1.0.0
+ * Version:     1.0.1
  * Author:      Mert Donmezler
  * Author URI:  https://mertdonmezler.com
  * License:     GPL-3.0-or-later
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'PHC_VERSION', '1.0.0' );
+define( 'PHC_VERSION', '1.0.1' );
 define( 'PHC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PHC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 

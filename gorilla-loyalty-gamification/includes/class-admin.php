@@ -714,7 +714,7 @@ add_action('wp_ajax_gorilla_tier_simulate', function() {
              FROM {$wpdb->posts} p
              INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_customer_user'
              INNER JOIN {$wpdb->postmeta} pm2 ON p.ID = pm2.post_id AND pm2.meta_key = '_order_total'
-             WHERE p.post_type IN ('shop_order', 'shop_order_placehold')
+             WHERE p.post_type IN ('shop_order', 'shop_order_placeholder')
              AND p.post_status IN ('wc-completed', 'wc-processing')
              AND p.post_date >= %s
              AND pm.meta_value > 0

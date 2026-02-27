@@ -36,7 +36,7 @@ class ArViewer {
         }
 
         $meta = function_exists( 'phc_get_product_meta' ) ? phc_get_product_meta( $product->get_id() ) : array();
-        $enabled = ! empty( $meta['enabled'] ) && $meta['enabled'] === 'yes';
+        $enabled = ! empty( $meta['enabled'] );
 
         // Only show button if PHC is enabled for this product.
         if ( ! $enabled ) {

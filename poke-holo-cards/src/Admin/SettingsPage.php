@@ -237,7 +237,7 @@ class SettingsPage {
      */
     public static function ajax_analytics_beacon() {
         // Rate limit: 1 beacon per IP per 5 seconds via transient.
-        $ip_hash  = md5( sanitize_text_field( $_SERVER['REMOTE_ADDR'] ?? '' ) );
+        $ip_hash  = md5( sanitize_text_field( $_SERVER['REMOTE_ADDR'] ?? '' ) . wp_salt() );
         $rate_key = 'phc_beacon_' . $ip_hash;
         if ( get_transient( $rate_key ) ) {
             wp_send_json_success();
@@ -250,6 +250,13 @@ class SettingsPage {
         $clicked  = ! empty( $_POST['clicked'] );
 
         if ( empty( $effect ) ) {
+            wp_send_json_success();
+            return;
+        }
+
+        // Validate effect against known types to prevent arbitrary key injection
+        $valid_effects = \PokeHoloCards\Utils\EffectTypes::get_all();
+        if ( ! in_array( $effect, $valid_effects, true ) ) {
             wp_send_json_success();
             return;
         }

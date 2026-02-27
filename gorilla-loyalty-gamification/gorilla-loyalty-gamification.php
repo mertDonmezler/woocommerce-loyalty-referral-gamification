@@ -3,7 +3,7 @@
  * Plugin Name: Gorilla Loyalty & Gamification
  * Plugin URI: https://www.gorillacustomcards.com
  * Description: XP/level, tier, badges, spin wheel, challenges, leaderboard, milestones, social share, QR, points shop, churn prediction, smart coupon, VIP early access gamification sistemi.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Mert Donmezler
  * Author URI: https://www.gorillacustomcards.com
  * Text Domain: gorilla-loyalty
@@ -19,7 +19,7 @@
 
 if (!defined('ABSPATH')) exit;
 
-define('GORILLA_LG_VERSION', '1.0.0');
+define('GORILLA_LG_VERSION', '1.0.1');
 define('GORILLA_LG_FILE', __FILE__);
 define('GORILLA_LG_PATH', plugin_dir_path(__FILE__));
 define('GORILLA_LG_URL', plugin_dir_url(__FILE__));
@@ -341,14 +341,14 @@ function gorilla_churn_weekly_check() {
         "SELECT DISTINCT pm.meta_value as customer_id
          FROM {$wpdb->posts} p
          INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_customer_user'
-         WHERE p.post_type IN ('shop_order', 'shop_order_placehold')
+         WHERE p.post_type IN ('shop_order', 'shop_order_placeholder')
          AND p.post_status IN ('wc-completed', 'wc-processing')
          AND pm.meta_value > 0
          AND pm.meta_value NOT IN (
              SELECT DISTINCT pm2.meta_value
              FROM {$wpdb->posts} p2
              INNER JOIN {$wpdb->postmeta} pm2 ON p2.ID = pm2.post_id AND pm2.meta_key = '_customer_user'
-             WHERE p2.post_type IN ('shop_order', 'shop_order_placehold')
+             WHERE p2.post_type IN ('shop_order', 'shop_order_placeholder')
              AND p2.post_status IN ('wc-completed', 'wc-processing')
              AND p2.post_date >= %s
          )",
@@ -404,7 +404,7 @@ function gorilla_smart_coupon_check() {
         "SELECT pm.meta_value as customer_id, MAX(p.post_date) as last_order
          FROM {$wpdb->posts} p
          INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_customer_user'
-         WHERE p.post_type IN ('shop_order', 'shop_order_placehold')
+         WHERE p.post_type IN ('shop_order', 'shop_order_placeholder')
          AND p.post_status IN ('wc-completed', 'wc-processing')
          AND pm.meta_value > 0
          GROUP BY pm.meta_value
@@ -521,13 +521,13 @@ function gorilla_social_proof_anon_name($user_id) {
     return $names[$user_id % count($names)];
 }
 
-add_action('gorilla_xp_level_up', function($user_id, $new_level) {
+add_action('gorilla_xp_level_up', function($user_id, $old_level, $new_level) {
     if (get_option('gorilla_lr_social_proof_enabled', 'no') !== 'yes') return;
     $anonymize = get_option('gorilla_lr_social_proof_anonymize', 'no') === 'yes';
     $name = $anonymize ? gorilla_social_proof_anon_name($user_id) : get_userdata($user_id)->display_name;
     $label = is_array($new_level) ? ($new_level['label'] ?? '') : '';
     gorilla_social_proof_log(sprintf('%s %s seviyesine yukseldi!', $name, $label));
-}, 10, 2);
+}, 10, 3);
 
 add_action('gorilla_badge_earned', function($user_id, $badge_key) {
     if (get_option('gorilla_lr_social_proof_enabled', 'no') !== 'yes') return;

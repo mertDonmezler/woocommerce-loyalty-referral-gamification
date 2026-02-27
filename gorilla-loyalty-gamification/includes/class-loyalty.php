@@ -1011,25 +1011,49 @@ function gorilla_transfer_credit_handler() {
         if (!function_exists('gorilla_credit_get_balance') || !function_exists('gorilla_credit_adjust')) {
             wp_send_json_error(array('message' => 'Kredi sistemi kulanilamiyor.'));
         }
-        $sender_balance = gorilla_credit_get_balance($sender_id);
-        if ($sender_balance < $amount) {
-            wp_send_json_error(array('message' => sprintf('Yetersiz bakiye. Mevcut: %s TL', number_format_i18n($sender_balance, 2))));
-        }
 
-        gorilla_credit_adjust($sender_id, -$amount, 'transfer_out', sprintf('Transfer -> %s', $recipient->display_name), $recipient->ID);
-        gorilla_credit_adjust($recipient->ID, $amount, 'transfer_in', sprintf('Transfer <- %s', wp_get_current_user()->display_name), $sender_id);
+        // Atomic credit transfer: check balance + deduct + add in a single transaction
+        global $wpdb;
+        $wpdb->query('START TRANSACTION');
+        try {
+            $sender_balance = floatval($wpdb->get_var($wpdb->prepare(
+                "SELECT meta_value FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = '_gorilla_store_credit' FOR UPDATE",
+                $sender_id
+            )));
+            if ($sender_balance < $amount) {
+                $wpdb->query('ROLLBACK');
+                wp_send_json_error(array('message' => sprintf('Yetersiz bakiye. Mevcut: %s TL', number_format_i18n($sender_balance, 2))));
+            }
+            gorilla_credit_adjust($sender_id, -$amount, 'transfer_out', sprintf('Transfer -> %s', $recipient->display_name), $recipient->ID);
+            gorilla_credit_adjust($recipient->ID, $amount, 'transfer_in', sprintf('Transfer <- %s', wp_get_current_user()->display_name), $sender_id);
+            $wpdb->query('COMMIT');
+        } catch (\Throwable $e) {
+            $wpdb->query('ROLLBACK');
+            wp_send_json_error(array('message' => 'Transfer sirasinda hata olustu. Lutfen tekrar deneyin.'));
+        }
     } elseif ($transfer_type === 'xp') {
-        if (!function_exists('gorilla_xp_get_balance') || !function_exists('gorilla_xp_deduct')) {
+        if (!function_exists('gorilla_xp_get_balance') || !function_exists('gorilla_xp_deduct') || !function_exists('gorilla_xp_add')) {
             wp_send_json_error(array('message' => 'XP sistemi kulanilamiyor.'));
         }
-        $sender_xp = gorilla_xp_get_balance($sender_id);
-        if ($sender_xp < $amount) {
-            wp_send_json_error(array('message' => sprintf('Yetersiz XP. Mevcut: %s', number_format_i18n($sender_xp))));
-        }
 
-        gorilla_xp_deduct($sender_id, intval($amount), sprintf('Transfer -> %s', $recipient->display_name));
-        if (function_exists('gorilla_xp_add')) {
+        // Atomic XP transfer: check balance + deduct + add in a single transaction
+        global $wpdb;
+        $wpdb->query('START TRANSACTION');
+        try {
+            $sender_xp = intval($wpdb->get_var($wpdb->prepare(
+                "SELECT meta_value FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = '_gorilla_total_xp' FOR UPDATE",
+                $sender_id
+            )));
+            if ($sender_xp < $amount) {
+                $wpdb->query('ROLLBACK');
+                wp_send_json_error(array('message' => sprintf('Yetersiz XP. Mevcut: %s', number_format_i18n($sender_xp))));
+            }
+            gorilla_xp_deduct($sender_id, intval($amount), sprintf('Transfer -> %s', $recipient->display_name));
             gorilla_xp_add($recipient->ID, intval($amount), sprintf('Transfer <- %s', wp_get_current_user()->display_name));
+            $wpdb->query('COMMIT');
+        } catch (\Throwable $e) {
+            $wpdb->query('ROLLBACK');
+            wp_send_json_error(array('message' => 'XP transferi sirasinda hata olustu. Lutfen tekrar deneyin.'));
         }
     } else {
         wp_send_json_error(array('message' => 'Gecersiz transfer tipi.'));

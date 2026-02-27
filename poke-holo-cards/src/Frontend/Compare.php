@@ -76,7 +76,7 @@ class Compare {
 
         $meta   = function_exists( 'phc_get_product_meta' ) ? phc_get_product_meta( $product_id ) : array();
         $effect = ! empty( $meta['effect'] ) ? $meta['effect'] : 'holo';
-        $glow   = ! empty( $meta['glow'] ) ? $meta['glow'] : '';
+        $glow   = ! empty( $meta['glow_color'] ) ? $meta['glow_color'] : '';
         $rarity = function_exists( 'phc_get_rarity' ) ? phc_get_rarity( $effect ) : 'common';
 
         $rarity_labels = array(
