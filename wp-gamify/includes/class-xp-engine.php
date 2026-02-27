@@ -37,22 +37,18 @@ class WPGamify_XP_Engine {
             return false;
         }
 
-        // Kampanya carpani filtresi.
-        $campaign_mult = (float) apply_filters( 'gamify_xp_campaign_multiplier', 1.0, $source, $user_id );
-        $campaign_mult = max( 0.01, min( 99.99, $campaign_mult ) );
-
         // XP filtreleme (3. parti muedahale noktasi).
+        // Campaign Manager hooks into gamify_xp_before_award to apply multiplier.
         $final_amount = (int) apply_filters(
             'gamify_xp_before_award',
-            (int) round( $amount * $campaign_mult ),
+            $amount,
             $source,
             $user_id,
-            [
-                'original_amount' => $amount,
-                'campaign_mult'   => $campaign_mult,
-                'source_id'       => $source_id,
-            ]
+            $source_id
         );
+
+        // Get campaign multiplier for DB record-keeping only (not for doubling).
+        $campaign_mult = WPGamify_Campaign_Manager::get_active_multiplier();
 
         if ( $final_amount <= 0 ) {
             return false;

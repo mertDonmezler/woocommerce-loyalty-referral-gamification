@@ -68,17 +68,11 @@ class WPGamify_Login_Hooks {
             return;
         }
 
-        // 1. Streak kaydini guncelle
+        // 1. Streak kaydini guncelle (also runs birthday/anniversary checks internally).
         WPGamify_Streak_Manager::record_activity( $user_id );
 
         // 2. Gunluk giris XP odul
         $this->maybe_award_login_xp( $user_id );
-
-        // 3. Dogum gunu kontrolu
-        WPGamify_Streak_Manager::check_birthday( $user_id );
-
-        // 4. Uyelik yildonumu kontrolu
-        WPGamify_Streak_Manager::check_anniversary( $user_id );
     }
 
     /**

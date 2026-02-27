@@ -33,7 +33,7 @@ $campaign = class_exists( 'WPGamify_Campaign_Manager' )
                     <td>
                         <label>
                             <input type="checkbox" name="wpgamify[order_xp_enabled]" value="1"
-                                <?php checked( $settings['order_xp_enabled'] ?? true ); ?>>
+                                <?php checked( $settings['xp_order_enabled'] ?? true ); ?>>
                             Siparis XP aktif
                         </label>
                     </td>
@@ -42,7 +42,7 @@ $campaign = class_exists( 'WPGamify_Campaign_Manager' )
                     <th scope="row">Temel XP</th>
                     <td>
                         <input type="number" name="wpgamify[order_xp_base]" min="0"
-                               value="<?php echo esc_attr( $settings['order_xp_base'] ?? 10 ); ?>"
+                               value="<?php echo esc_attr( $settings['xp_order_base'] ?? 10 ); ?>"
                                class="small-text">
                         <p class="description">Her siparise verilen sabit XP miktari.</p>
                     </td>
@@ -51,7 +51,7 @@ $campaign = class_exists( 'WPGamify_Campaign_Manager' )
                     <th scope="row">Para Birimi Basina XP</th>
                     <td>
                         <input type="number" name="wpgamify[order_xp_per_currency]" min="0"
-                               value="<?php echo esc_attr( $settings['order_xp_per_currency'] ?? 1 ); ?>"
+                               value="<?php echo esc_attr( $settings['xp_order_per_currency'] ?? 1 ); ?>"
                                class="small-text">
                         <p class="description">Harcanan her 1 birim para icin ekstra XP.</p>
                     </td>
@@ -60,7 +60,7 @@ $campaign = class_exists( 'WPGamify_Campaign_Manager' )
                     <th scope="row">Ilk Siparis Bonusu</th>
                     <td>
                         <input type="number" name="wpgamify[order_first_bonus]" min="0"
-                               value="<?php echo esc_attr( $settings['order_first_bonus'] ?? 50 ); ?>"
+                               value="<?php echo esc_attr( $settings['xp_first_order_bonus'] ?? 50 ); ?>"
                                class="small-text">
                         <p class="description">Musterinin ilk siparisine ek XP bonusu.</p>
                     </td>
@@ -77,7 +77,7 @@ $campaign = class_exists( 'WPGamify_Campaign_Manager' )
                     <td>
                         <label>
                             <input type="checkbox" name="wpgamify[review_xp_enabled]" value="1"
-                                <?php checked( $settings['review_xp_enabled'] ?? true ); ?>>
+                                <?php checked( $settings['xp_review_enabled'] ?? true ); ?>>
                             Yorum XP aktif
                         </label>
                     </td>
@@ -86,7 +86,7 @@ $campaign = class_exists( 'WPGamify_Campaign_Manager' )
                     <th scope="row">Yorum XP Miktari</th>
                     <td>
                         <input type="number" name="wpgamify[review_xp]" min="0"
-                               value="<?php echo esc_attr( $settings['review_xp'] ?? 20 ); ?>"
+                               value="<?php echo esc_attr( $settings['xp_review_amount'] ?? 15 ); ?>"
                                class="small-text">
                     </td>
                 </tr>
@@ -94,7 +94,7 @@ $campaign = class_exists( 'WPGamify_Campaign_Manager' )
                     <th scope="row">Minimum Karakter</th>
                     <td>
                         <input type="number" name="wpgamify[review_min_chars]" min="0"
-                               value="<?php echo esc_attr( $settings['review_min_chars'] ?? 50 ); ?>"
+                               value="<?php echo esc_attr( $settings['xp_review_min_chars'] ?? 20 ); ?>"
                                class="small-text">
                         <p class="description">Yorumun XP icin minimum karakter sayisi.</p>
                     </td>
@@ -111,7 +111,7 @@ $campaign = class_exists( 'WPGamify_Campaign_Manager' )
                     <td>
                         <label>
                             <input type="checkbox" name="wpgamify[login_xp_enabled]" value="1"
-                                <?php checked( $settings['login_xp_enabled'] ?? true ); ?>>
+                                <?php checked( $settings['xp_login_enabled'] ?? true ); ?>>
                             Gunluk giris XP aktif
                         </label>
                     </td>
@@ -120,7 +120,7 @@ $campaign = class_exists( 'WPGamify_Campaign_Manager' )
                     <th scope="row">Giris XP Miktari</th>
                     <td>
                         <input type="number" name="wpgamify[login_xp]" min="0"
-                               value="<?php echo esc_attr( $settings['login_xp'] ?? 5 ); ?>"
+                               value="<?php echo esc_attr( $settings['xp_login_amount'] ?? 5 ); ?>"
                                class="small-text">
                     </td>
                 </tr>
@@ -136,12 +136,12 @@ $campaign = class_exists( 'WPGamify_Campaign_Manager' )
                     <td>
                         <label>
                             <input type="checkbox" name="wpgamify[birthday_enabled]" value="1"
-                                <?php checked( $settings['birthday_enabled'] ?? false ); ?>>
+                                <?php checked( $settings['xp_birthday_enabled'] ?? true ); ?>>
                             Aktif
                         </label>
                         <br>
                         <input type="number" name="wpgamify[birthday_xp]" min="0"
-                               value="<?php echo esc_attr( $settings['birthday_xp'] ?? 100 ); ?>"
+                               value="<?php echo esc_attr( $settings['xp_birthday_amount'] ?? 100 ); ?>"
                                class="small-text"> XP
                     </td>
                 </tr>
@@ -150,12 +150,12 @@ $campaign = class_exists( 'WPGamify_Campaign_Manager' )
                     <td>
                         <label>
                             <input type="checkbox" name="wpgamify[anniversary_enabled]" value="1"
-                                <?php checked( $settings['anniversary_enabled'] ?? false ); ?>>
+                                <?php checked( $settings['xp_anniversary_enabled'] ?? true ); ?>>
                             Aktif
                         </label>
                         <br>
                         <input type="number" name="wpgamify[anniversary_xp]" min="0"
-                               value="<?php echo esc_attr( $settings['anniversary_xp'] ?? 50 ); ?>"
+                               value="<?php echo esc_attr( $settings['xp_anniversary_amount'] ?? 50 ); ?>"
                                class="small-text"> XP
                     </td>
                 </tr>
@@ -164,12 +164,12 @@ $campaign = class_exists( 'WPGamify_Campaign_Manager' )
                     <td>
                         <label>
                             <input type="checkbox" name="wpgamify[registration_enabled]" value="1"
-                                <?php checked( $settings['registration_enabled'] ?? true ); ?>>
+                                <?php checked( $settings['xp_registration_enabled'] ?? true ); ?>>
                             Aktif
                         </label>
                         <br>
                         <input type="number" name="wpgamify[registration_xp]" min="0"
-                               value="<?php echo esc_attr( $settings['registration_xp'] ?? 25 ); ?>"
+                               value="<?php echo esc_attr( $settings['xp_registration_amount'] ?? 25 ); ?>"
                                class="small-text"> XP
                     </td>
                 </tr>
@@ -260,7 +260,7 @@ $campaign = class_exists( 'WPGamify_Campaign_Manager' )
                     <th scope="row">Hareketli Donem (ay)</th>
                     <td>
                         <input type="number" name="wpgamify[rolling_months]" min="1" max="24"
-                               value="<?php echo esc_attr( $settings['rolling_months'] ?? 12 ); ?>"
+                               value="<?php echo esc_attr( $settings['level_rolling_months'] ?? 6 ); ?>"
                                class="small-text">
                         <p class="description">Sadece "Hareketli Donem" modunda gecerlidir.</p>
                     </td>
@@ -269,7 +269,7 @@ $campaign = class_exists( 'WPGamify_Campaign_Manager' )
                     <th scope="row">Tolerans Gunu</th>
                     <td>
                         <input type="number" name="wpgamify[grace_days]" min="0"
-                               value="<?php echo esc_attr( $settings['grace_days'] ?? 30 ); ?>"
+                               value="<?php echo esc_attr( $settings['level_grace_days'] ?? 14 ); ?>"
                                class="small-text">
                         <p class="description">Level dusurulmeden once bekleme suresi (gun).</p>
                     </td>

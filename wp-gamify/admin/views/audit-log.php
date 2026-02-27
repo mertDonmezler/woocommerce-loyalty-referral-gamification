@@ -56,7 +56,7 @@ $total_pages = max( 1, (int) ceil( $total_items / $per_page ) );
 $query = "SELECT a.*, admin_u.display_name as admin_name, user_u.display_name as user_name
           FROM {$table} a
           LEFT JOIN {$wpdb->users} admin_u ON a.admin_id = admin_u.ID
-          LEFT JOIN {$wpdb->users} user_u ON a.user_id = user_u.ID
+          LEFT JOIN {$wpdb->users} user_u ON a.target_user_id = user_u.ID
           {$where_sql}
           ORDER BY a.created_at DESC
           LIMIT %d OFFSET %d";
@@ -144,13 +144,13 @@ $admin_users = get_users( [
                         <tr>
                             <td><?php echo esc_html( wp_date( 'd.m.Y H:i', strtotime( $row->created_at ) ) ); ?></td>
                             <td><?php echo esc_html( $row->admin_name ?? '#' . $row->admin_id ); ?></td>
-                            <td><?php echo esc_html( $row->user_name ?? '#' . $row->user_id ); ?></td>
+                            <td><?php echo esc_html( $row->user_name ?? '#' . $row->target_user_id ); ?></td>
                             <td><?php echo esc_html( $action_label ); ?></td>
                             <td class="<?php echo esc_attr( $action_class ); ?>">
                                 <?php echo number_format_i18n( (int) $row->amount ); ?>
                             </td>
-                            <td><?php echo number_format_i18n( (int) $row->previous_xp ); ?></td>
-                            <td><?php echo number_format_i18n( (int) $row->new_xp ); ?></td>
+                            <td><?php echo number_format_i18n( (int) $row->before_value ); ?></td>
+                            <td><?php echo number_format_i18n( (int) $row->after_value ); ?></td>
                             <td><?php echo esc_html( $row->reason ); ?></td>
                         </tr>
                     <?php endforeach; ?>

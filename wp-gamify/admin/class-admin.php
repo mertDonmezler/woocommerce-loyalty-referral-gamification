@@ -264,16 +264,22 @@ class WPGamify_Admin {
         $this->verify_ajax();
 
         $id        = (int) ( $_POST['level_id'] ?? 0 );
-        $data      = [
-            'name'          => sanitize_text_field( wp_unslash( $_POST['name'] ?? '' ) ),
-            'min_xp'        => max( 0, (int) ( $_POST['min_xp'] ?? 0 ) ),
-            'color_hex'     => sanitize_hex_color( wp_unslash( $_POST['color_hex'] ?? '#6366f1' ) ),
-            'icon_url'      => esc_url_raw( wp_unslash( $_POST['icon_url'] ?? '' ) ),
+
+        // Assemble benefits JSON from individual fields.
+        $benefits = [
             'discount'      => min( 100, max( 0, (float) ( $_POST['discount'] ?? 0 ) ) ),
-            'free_shipping' => (int) ! empty( $_POST['free_shipping'] ),
-            'early_access'  => (int) ! empty( $_POST['early_access'] ),
-            'installment'   => (int) ! empty( $_POST['installment'] ),
-            'sort_order'    => max( 0, (int) ( $_POST['sort_order'] ?? 0 ) ),
+            'free_shipping' => (bool) ! empty( $_POST['free_shipping'] ),
+            'early_access'  => (bool) ! empty( $_POST['early_access'] ),
+            'installment'   => (bool) ! empty( $_POST['installment'] ),
+        ];
+
+        $data = [
+            'name'               => sanitize_text_field( wp_unslash( $_POST['name'] ?? '' ) ),
+            'xp_required'        => max( 0, (int) ( $_POST['min_xp'] ?? 0 ) ),
+            'color_hex'          => sanitize_hex_color( wp_unslash( $_POST['color_hex'] ?? '#6366f1' ) ),
+            'icon_attachment_id' => ! empty( $_POST['icon_url'] ) ? 0 : null,
+            'benefits'           => $benefits,
+            'sort_order'         => max( 0, (int) ( $_POST['sort_order'] ?? 0 ) ),
         ];
 
         if ( empty( $data['name'] ) ) {
@@ -283,11 +289,20 @@ class WPGamify_Admin {
         if ( $id > 0 ) {
             $result = WPGamify_Level_Manager::update_level( $id, $data );
         } else {
+            // For new levels, calculate level_number = max existing + 1.
+            $all_levels   = WPGamify_Level_Manager::get_all_levels();
+            $max_level_num = 0;
+            foreach ( $all_levels as $level ) {
+                if ( (int) $level['level_number'] > $max_level_num ) {
+                    $max_level_num = (int) $level['level_number'];
+                }
+            }
+            $data['level_number'] = $max_level_num + 1;
             $result = WPGamify_Level_Manager::create_level( $data );
         }
 
-        if ( is_wp_error( $result ) ) {
-            wp_send_json_error( [ 'message' => $result->get_error_message() ] );
+        if ( $result === false ) {
+            wp_send_json_error( [ 'message' => 'Level kaydedilemedi.' ] );
         }
 
         wp_send_json_success( [
@@ -309,8 +324,8 @@ class WPGamify_Admin {
 
         $result = WPGamify_Level_Manager::delete_level( $id );
 
-        if ( is_wp_error( $result ) ) {
-            wp_send_json_error( [ 'message' => $result->get_error_message() ] );
+        if ( $result === false ) {
+            wp_send_json_error( [ 'message' => 'Level silinemedi.' ] );
         }
 
         wp_send_json_success( [ 'message' => 'Level silindi.' ] );
@@ -337,19 +352,13 @@ class WPGamify_Admin {
         }
 
         if ( $action === 'deduct' ) {
-            $result = WPGamify_XP_Engine::deduct( $user_id, $amount, 'manual_admin', [
-                'reason'   => $reason,
-                'admin_id' => get_current_user_id(),
-            ] );
+            $result = WPGamify_XP_Engine::deduct( $user_id, $amount, 'manual_admin', '', $reason );
         } else {
-            $result = WPGamify_XP_Engine::award( $user_id, $amount, 'manual_admin', [
-                'reason'   => $reason,
-                'admin_id' => get_current_user_id(),
-            ] );
+            $result = WPGamify_XP_Engine::award( $user_id, $amount, 'manual_admin', '', $reason );
         }
 
-        if ( is_wp_error( $result ) ) {
-            wp_send_json_error( [ 'message' => $result->get_error_message() ] );
+        if ( $result === false ) {
+            wp_send_json_error( [ 'message' => 'XP islemi basarisiz oldu.' ] );
         }
 
         // Log to audit table.
@@ -489,18 +498,47 @@ class WPGamify_Admin {
      * @return array<string,mixed> Sanitized settings.
      */
     private function sanitize_settings( array $settings ): array {
+        // Map admin form field names to Settings::get_defaults() keys.
+        $key_map = [
+            'order_xp_enabled'    => 'xp_order_enabled',
+            'order_xp_base'       => 'xp_order_base',
+            'order_xp_per_currency' => 'xp_order_per_currency',
+            'order_first_bonus'   => 'xp_first_order_bonus',
+            'review_xp_enabled'   => 'xp_review_enabled',
+            'review_xp'           => 'xp_review_amount',
+            'review_min_chars'    => 'xp_review_min_chars',
+            'login_xp_enabled'    => 'xp_login_enabled',
+            'login_xp'            => 'xp_login_amount',
+            'birthday_enabled'    => 'xp_birthday_enabled',
+            'birthday_xp'         => 'xp_birthday_amount',
+            'anniversary_enabled' => 'xp_anniversary_enabled',
+            'anniversary_xp'      => 'xp_anniversary_amount',
+            'registration_enabled' => 'xp_registration_enabled',
+            'registration_xp'     => 'xp_registration_amount',
+            'rolling_months'      => 'level_rolling_months',
+            'grace_days'          => 'level_grace_days',
+        ];
+
+        // Remap form keys to canonical keys.
+        $remapped = [];
+        foreach ( $settings as $key => $value ) {
+            $canonical_key = $key_map[ $key ] ?? $key;
+            $remapped[ $canonical_key ] = $value;
+        }
+        $settings = $remapped;
+
         $sanitized = [];
         $int_keys  = [
-            'order_xp_base', 'order_xp_per_currency', 'order_first_bonus',
-            'review_xp', 'review_min_chars', 'login_xp',
-            'birthday_xp', 'anniversary_xp', 'registration_xp',
+            'xp_order_base', 'xp_order_per_currency', 'xp_first_order_bonus',
+            'xp_review_amount', 'xp_review_min_chars', 'xp_login_amount',
+            'xp_birthday_amount', 'xp_anniversary_amount', 'xp_registration_amount',
             'streak_base_xp', 'streak_max_day', 'streak_tolerance',
-            'rolling_months', 'grace_days', 'daily_xp_cap',
+            'level_rolling_months', 'level_grace_days', 'daily_xp_cap',
         ];
         $float_keys = [ 'streak_multiplier', 'campaign_multiplier' ];
         $bool_keys  = [
-            'order_xp_enabled', 'review_xp_enabled', 'login_xp_enabled',
-            'birthday_enabled', 'anniversary_enabled', 'registration_enabled',
+            'xp_order_enabled', 'xp_review_enabled', 'xp_login_enabled',
+            'xp_birthday_enabled', 'xp_anniversary_enabled', 'xp_registration_enabled',
             'streak_enabled', 'streak_cycle_reset', 'duplicate_review_block',
             'keep_data_on_uninstall',
         ];
@@ -548,14 +586,14 @@ class WPGamify_Admin {
         $previous_xp = WPGamify_XP_Engine::get_total_xp( $user_id );
 
         $wpdb->insert( $table, [
-            'admin_id'    => get_current_user_id(),
-            'user_id'     => $user_id,
-            'action'      => $action,
-            'amount'      => $amount,
-            'previous_xp' => $previous_xp,
-            'new_xp'      => $action === 'deduct' ? $previous_xp - $amount : $previous_xp + $amount,
-            'reason'      => $reason,
-            'created_at'  => current_time( 'mysql' ),
+            'admin_id'       => get_current_user_id(),
+            'target_user_id' => $user_id,
+            'action'         => $action,
+            'amount'         => $amount,
+            'before_value'   => $previous_xp,
+            'after_value'    => $action === 'deduct' ? $previous_xp - $amount : $previous_xp + $amount,
+            'reason'         => $reason,
+            'created_at'     => current_time( 'mysql' ),
         ], [ '%d', '%d', '%s', '%d', '%d', '%d', '%s', '%s' ] );
     }
 
@@ -602,9 +640,9 @@ class WPGamify_Admin {
      */
     private function wizard_save_xp_settings(): void {
         $settings = [
-            'order_xp_enabled'  => ! empty( $_POST['order_xp_enabled'] ),
-            'review_xp_enabled' => ! empty( $_POST['review_xp_enabled'] ),
-            'login_xp_enabled'  => ! empty( $_POST['login_xp_enabled'] ),
+            'xp_order_enabled'  => ! empty( $_POST['order_xp_enabled'] ),
+            'xp_review_enabled' => ! empty( $_POST['review_xp_enabled'] ),
+            'xp_login_enabled'  => ! empty( $_POST['login_xp_enabled'] ),
             'streak_enabled'    => ! empty( $_POST['streak_enabled'] ),
         ];
         WPGamify_Settings::save( $settings );

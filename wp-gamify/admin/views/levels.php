@@ -39,18 +39,19 @@ $level_dist = WPGamify_Level_Manager::get_level_distribution();
                 <?php foreach ( $levels as $i => $level ) :
                     $level      = (array) $level;
                     $id         = (int) ( $level['id'] ?? 0 );
-                    $user_count = (int) ( $level_dist[ $id ] ?? 0 );
-                    $benefits   = [];
-                    if ( ! empty( $level['discount'] ) ) {
-                        $benefits[] = '%' . $level['discount'] . ' indirim';
+                    $user_count = (int) ( $level_dist[ (int) $level['level_number'] ] ?? 0 );
+                    $benefits_data = json_decode( $level['benefits'] ?? '{}', true );
+                    $benefits      = [];
+                    if ( ! empty( $benefits_data['discount'] ) ) {
+                        $benefits[] = '%' . $benefits_data['discount'] . ' indirim';
                     }
-                    if ( ! empty( $level['free_shipping'] ) ) {
+                    if ( ! empty( $benefits_data['free_shipping'] ) ) {
                         $benefits[] = 'Ucretsiz kargo';
                     }
-                    if ( ! empty( $level['early_access'] ) ) {
+                    if ( ! empty( $benefits_data['early_access'] ) ) {
                         $benefits[] = 'Erken erisim';
                     }
-                    if ( ! empty( $level['installment'] ) ) {
+                    if ( ! empty( $benefits_data['installment'] ) ) {
                         $benefits[] = 'Taksit avantaji';
                     }
                     ?>
@@ -68,7 +69,7 @@ $level_dist = WPGamify_Level_Manager::get_level_distribution();
                             <?php endif; ?>
                         </td>
                         <td><strong><?php echo esc_html( $level['name'] ?? '' ); ?></strong></td>
-                        <td><?php echo number_format_i18n( $level['min_xp'] ?? 0 ); ?></td>
+                        <td><?php echo number_format_i18n( $level['xp_required'] ?? 0 ); ?></td>
                         <td>
                             <?php if ( ! empty( $benefits ) ) : ?>
                                 <?php echo esc_html( implode( ', ', $benefits ) ); ?>

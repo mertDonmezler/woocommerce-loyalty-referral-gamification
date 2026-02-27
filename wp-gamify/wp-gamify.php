@@ -3,7 +3,7 @@
  * Plugin Name: WP Gamify
  * Plugin URI: https://wpgamify.com
  * Description: Gelismis XP, level, streak, rozet ve gorev sistemi. WooCommerce ile tam entegre gamification altyapisi.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Mert Donmezler
  * Author URI: https://mertdonmezler.com
  * Text Domain: wp-gamify
@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || exit;
 
 /* ─── Constants ─────────────────────────────────────────────────────── */
 
-define( 'WPGAMIFY_VERSION', '1.0.0' );
+define( 'WPGAMIFY_VERSION', '1.0.1' );
 define( 'WPGAMIFY_FILE', __FILE__ );
 define( 'WPGAMIFY_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WPGAMIFY_URL', plugin_dir_url( __FILE__ ) );
@@ -153,6 +153,9 @@ add_action( 'plugins_loaded', function (): void {
     // Core classes auto-loaded on first use; ensure Settings is primed.
     WPGamify_Settings::get_all();
 
+    // Initialize Campaign Manager filter hook.
+    WPGamify_Campaign_Manager::init();
+
     // DB migration check on admin requests.
     if ( is_admin() ) {
         WPGamify_Migrator::check();
@@ -245,12 +248,11 @@ add_action( 'wpgamify_daily_maintenance', function (): void {
     global $wpdb;
     $table = $wpdb->prefix . 'gamify_streaks';
     if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table ) {
-        $wpdb->update(
-            $table,
-            [ 'streak_xp_today' => 0 ],
-            [ 'streak_xp_today >' => 0 ]
-        );
+        $wpdb->query( "UPDATE {$table} SET streak_xp_today = 0 WHERE streak_xp_today > 0" );
     }
+
+    // Run streak daily maintenance (check for broken streaks).
+    WPGamify_Streak_Manager::daily_maintenance();
 });
 
 /* ─── Plugin Action Links ───────────────────────────────────────────── */

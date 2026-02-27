@@ -153,7 +153,7 @@ class WPGamify_Setup_Wizard {
                         <td>
                             <label>
                                 <input type="checkbox" name="order_xp_enabled" value="1"
-                                    <?php checked( $settings['order_xp_enabled'] ?? true ); ?>>
+                                    <?php checked( $settings['xp_order_enabled'] ?? true ); ?>>
                                 Musteriler siparis verdiklerinde XP kazansin
                             </label>
                         </td>
@@ -163,7 +163,7 @@ class WPGamify_Setup_Wizard {
                         <td>
                             <label>
                                 <input type="checkbox" name="review_xp_enabled" value="1"
-                                    <?php checked( $settings['review_xp_enabled'] ?? true ); ?>>
+                                    <?php checked( $settings['xp_review_enabled'] ?? true ); ?>>
                                 Urun yorumu yazan musteriler XP kazansin
                             </label>
                         </td>
@@ -173,7 +173,7 @@ class WPGamify_Setup_Wizard {
                         <td>
                             <label>
                                 <input type="checkbox" name="login_xp_enabled" value="1"
-                                    <?php checked( $settings['login_xp_enabled'] ?? true ); ?>>
+                                    <?php checked( $settings['xp_login_enabled'] ?? true ); ?>>
                                 Gunluk giris yapan musteriler XP kazansin
                             </label>
                         </td>
@@ -228,11 +228,15 @@ class WPGamify_Setup_Wizard {
                         <?php foreach ( $levels as $i => $level ) :
                             $level = (array) $level;
                             ?>
+                            <?php
+                            $benefits_data = json_decode( $level['benefits'] ?? '{}', true );
+                            $discount_val  = $benefits_data['discount'] ?? 0;
+                            ?>
                             <tr>
                                 <td><?php echo esc_html( $i + 1 ); ?></td>
                                 <td><?php echo esc_html( $level['name'] ?? '' ); ?></td>
-                                <td><?php echo number_format_i18n( $level['min_xp'] ?? 0 ); ?></td>
-                                <td><?php echo esc_html( $level['discount'] ?? 0 ); ?>%</td>
+                                <td><?php echo number_format_i18n( $level['xp_required'] ?? 0 ); ?></td>
+                                <td><?php echo esc_html( $discount_val ); ?>%</td>
                                 <td>
                                     <span class="wpgamify-color-swatch"
                                           style="background-color: <?php echo esc_attr( $level['color_hex'] ?? '#6366f1' ); ?>">

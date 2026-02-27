@@ -140,19 +140,23 @@ class WPGamify_Frontend {
         // Bu ayin XP toplamini hesapla.
         $monthly_xp = $this->get_monthly_xp( $user_id );
 
+        // Get history result (returns associative array with 'items', 'pages', etc.).
+        $history_result = WPGamify_XP_Engine::get_history( $user_id, 1, 10 );
+
         $data = [
-            'user_id'        => $user_id,
-            'level_data'     => $level_data,
-            'progress'       => $progress,
-            'benefits'       => WPGamify_Level_Manager::get_user_benefits( $user_id ),
-            'level_config'   => WPGamify_Level_Manager::get_level( $level_data['current_level'] ),
-            'streak'         => WPGamify_Streak_Manager::get_streak( $user_id ),
-            'total_xp'       => (int) $level_data['total_xp'],
-            'monthly_xp'     => $monthly_xp,
-            'history'        => WPGamify_XP_Engine::get_history( $user_id, 1, 10 ),
-            'campaign'       => WPGamify_Campaign_Manager::get_active_campaign(),
-            'all_levels'     => $all_levels,
-            'currency_label' => WPGamify_Settings::get( 'currency_label', 'XP' ),
+            'user_id'          => $user_id,
+            'level_data'       => $level_data,
+            'progress'         => $progress,
+            'benefits'         => WPGamify_Level_Manager::get_user_benefits( $user_id ),
+            'level_config'     => WPGamify_Level_Manager::get_level( $level_data['current_level'] ),
+            'streak'           => WPGamify_Streak_Manager::get_streak( $user_id ),
+            'total_xp'         => (int) $level_data['total_xp'],
+            'monthly_xp'       => $monthly_xp,
+            'history'          => $history_result['items'] ?? [],
+            'history_has_more' => ( $history_result['pages'] ?? 1 ) > 1,
+            'campaign'         => WPGamify_Campaign_Manager::get_active_campaign(),
+            'all_levels'       => $all_levels,
+            'currency_label'   => WPGamify_Settings::get( 'currency_label', 'XP' ),
         ];
 
         include WPGAMIFY_PATH . 'frontend/views/my-account-dashboard.php';

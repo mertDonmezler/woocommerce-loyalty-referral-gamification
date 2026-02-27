@@ -77,13 +77,13 @@ $benefit_labels = [
         <div class="wpg-campaign-banner" role="alert" aria-live="polite">
             <span class="wpg-campaign-icon" aria-hidden="true">&#128293;</span>
             <span class="wpg-campaign-text">
-                <?php echo esc_html( $campaign['title'] ?? 'Ozel Kampanya' ); ?>
+                <?php echo esc_html( $campaign['label'] ?? 'Ozel Kampanya' ); ?>
                 <?php if ( ! empty( $campaign['multiplier'] ) && (float) $campaign['multiplier'] > 1 ) : ?>
                     &mdash; <strong><?php echo esc_html( $campaign['multiplier'] ); ?>x <?php echo esc_html( $currency_label ); ?></strong>
                 <?php endif; ?>
-                <?php if ( ! empty( $campaign['ends_at'] ) ) : ?>
+                <?php if ( ! empty( $campaign['end'] ) ) : ?>
                     <span class="wpg-campaign-end">
-                        (<?php echo esc_html( wp_date( 'j M Y', strtotime( $campaign['ends_at'] ) ) ); ?> tarihine kadar)
+                        (<?php echo esc_html( wp_date( 'j M Y', strtotime( $campaign['end'] ) ) ); ?> tarihine kadar)
                     </span>
                 <?php endif; ?>
             </span>

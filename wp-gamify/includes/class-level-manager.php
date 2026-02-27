@@ -163,7 +163,7 @@ class WPGamify_Level_Manager {
             return $row;
         }
 
-        // Create default row.
+        // Create default row (omit grace_until and last_xp_at to let MySQL default them to NULL).
         $now = current_time( 'mysql', false );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery
@@ -174,11 +174,9 @@ class WPGamify_Level_Manager {
                 'current_level' => 0,
                 'total_xp'      => 0,
                 'rolling_xp'    => 0,
-                'grace_until'   => null,
-                'last_xp_at'    => null,
                 'updated_at'    => $now,
             ],
-            [ '%d', '%d', '%d', '%d', '%s', '%s', '%s' ]
+            [ '%d', '%d', '%d', '%d', '%s' ]
         );
 
         return [
@@ -227,17 +225,12 @@ class WPGamify_Level_Manager {
         if ( $new_level > $old_level ) {
             // Level UP -- clear any grace period and update.
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery
-            $wpdb->update(
-                $table,
-                [
-                    'current_level' => $new_level,
-                    'grace_until'   => null,
-                    'updated_at'    => $now,
-                ],
-                [ 'user_id' => $user_id ],
-                [ '%d', '%s', '%s' ],
-                [ '%d' ]
-            );
+            $wpdb->query( $wpdb->prepare(
+                "UPDATE {$table} SET grace_until = NULL, current_level = %d, updated_at = %s WHERE user_id = %d",
+                $new_level,
+                $now,
+                $user_id
+            ) );
 
             /**
              * Fires when a user's level increases.
@@ -264,17 +257,12 @@ class WPGamify_Level_Manager {
 
             // Grace expired -- actually downgrade.
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery
-            $wpdb->update(
-                $table,
-                [
-                    'current_level' => $new_level,
-                    'grace_until'   => null,
-                    'updated_at'    => $now,
-                ],
-                [ 'user_id' => $user_id ],
-                [ '%d', '%s', '%s' ],
-                [ '%d' ]
-            );
+            $wpdb->query( $wpdb->prepare(
+                "UPDATE {$table} SET grace_until = NULL, current_level = %d, updated_at = %s WHERE user_id = %d",
+                $new_level,
+                $now,
+                $user_id
+            ) );
 
             /**
              * Fires when a user's level decreases (after grace expired).
@@ -482,17 +470,12 @@ class WPGamify_Level_Manager {
             $new_level = self::calculate_level( $xp );
 
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery
-            $wpdb->update(
-                $table,
-                [
-                    'current_level' => $new_level,
-                    'grace_until'   => null,
-                    'updated_at'    => $now,
-                ],
-                [ 'user_id' => $user_id ],
-                [ '%d', '%s', '%s' ],
-                [ '%d' ]
-            );
+            $wpdb->query( $wpdb->prepare(
+                "UPDATE {$table} SET grace_until = NULL, current_level = %d, updated_at = %s WHERE user_id = %d",
+                $new_level,
+                $now,
+                $user_id
+            ) );
 
             if ( $new_level < $old_level ) {
                 /** This action is documented in self::sync_level() */

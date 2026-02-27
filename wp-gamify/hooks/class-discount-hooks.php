@@ -107,8 +107,9 @@ class WPGamify_Discount_Hooks {
         }
 
         // Level bilgisi al (etiket icin)
-        $level_data = WPGamify_Level_Manager::get_user_level_data( $user_id );
-        $level_name = $level_data['name'] ?? '';
+        $level_data   = WPGamify_Level_Manager::get_user_level_data( $user_id );
+        $level_config = WPGamify_Level_Manager::get_level( $level_data['current_level'] );
+        $level_name   = $level_config['name'] ?? '';
 
         $label = $level_name !== ''
             ? $level_name . ' Indirimi (%' . $discount_percent . ')'
@@ -172,8 +173,9 @@ class WPGamify_Discount_Hooks {
         }
 
         // Level bilgisi al
-        $level_data = WPGamify_Level_Manager::get_user_level_data( $user_id );
-        $level_name = $level_data['name'] ?? 'Seviye';
+        $level_data   = WPGamify_Level_Manager::get_user_level_data( $user_id );
+        $level_config = WPGamify_Level_Manager::get_level( $level_data['current_level'] );
+        $level_name   = $level_config['name'] ?? 'Seviye';
 
         // Yeni ucretsiz kargo orani olustur.
         $free_rate = new WC_Shipping_Rate(

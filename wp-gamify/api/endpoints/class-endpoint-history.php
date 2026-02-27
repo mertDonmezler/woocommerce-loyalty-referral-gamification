@@ -44,13 +44,10 @@ class WPGamify_Endpoint_History {
         $page     = (int) ( $request->get_param( 'page' ) ?? 1 );
         $per_page = (int) ( $request->get_param( 'per_page' ) ?? 20 );
 
-        // per_page + 1 cekerek sonraki sayfada veri olup olmadigini kontrol et.
-        $history  = WPGamify_XP_Engine::get_history( $user_id, $page, $per_page + 1 );
-        $has_more = count( $history ) > $per_page;
-
-        if ( $has_more ) {
-            array_pop( $history );
-        }
+        // get_history returns associative array with 'items', 'total', 'pages', 'page'.
+        $result   = WPGamify_XP_Engine::get_history( $user_id, $page, $per_page );
+        $items_raw = $result['items'] ?? [];
+        $has_more = ( $result['page'] ?? 1 ) < ( $result['pages'] ?? 1 );
 
         $items = array_map( static function ( array $row ): array {
             return [
@@ -63,7 +60,7 @@ class WPGamify_Endpoint_History {
                     ? wp_date( 'j M Y, H:i', strtotime( $row['created_at'] ) )
                     : '',
             ];
-        }, $history );
+        }, $items_raw );
 
         return new \WP_REST_Response( [
             'items'    => $items,

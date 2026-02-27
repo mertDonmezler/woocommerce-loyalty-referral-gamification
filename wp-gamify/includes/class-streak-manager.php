@@ -291,9 +291,7 @@ class WPGamify_Streak_Manager {
      * @param int $user_id WordPress user ID.
      */
     public static function check_birthday( int $user_id ): void {
-        $settings = self::get_settings();
-
-        if ( empty( $settings['birthday_xp_enabled'] ) ) {
+        if ( ! WPGamify_Settings::get( 'xp_birthday_enabled', true ) ) {
             return;
         }
 
@@ -315,7 +313,7 @@ class WPGamify_Streak_Manager {
             return;
         }
 
-        $xp = (int) ( $settings['birthday_xp'] ?? 50 );
+        $xp = (int) WPGamify_Settings::get( 'xp_birthday_amount', 100 );
         if ( $xp <= 0 ) {
             return;
         }
@@ -346,9 +344,7 @@ class WPGamify_Streak_Manager {
      * @param int $user_id WordPress user ID.
      */
     public static function check_anniversary( int $user_id ): void {
-        $settings = self::get_settings();
-
-        if ( empty( $settings['anniversary_xp_enabled'] ) ) {
+        if ( ! WPGamify_Settings::get( 'xp_anniversary_enabled', true ) ) {
             return;
         }
 
@@ -379,7 +375,7 @@ class WPGamify_Streak_Manager {
             return;
         }
 
-        $xp = (int) ( $settings['anniversary_xp'] ?? 100 );
+        $xp = (int) WPGamify_Settings::get( 'xp_anniversary_amount', 50 );
         if ( $xp <= 0 ) {
             return;
         }
@@ -460,11 +456,7 @@ class WPGamify_Streak_Manager {
             'streak_multiplier'     => 2.0,
             'streak_max_day'        => 7,
             'streak_tolerance'      => false,
-            'streak_cycle_reset'    => false,
-            'birthday_xp_enabled'   => true,
-            'birthday_xp'           => 50,
-            'anniversary_xp_enabled' => true,
-            'anniversary_xp'        => 100,
+            'streak_cycle_reset'    => true,
         ];
 
         return wp_parse_args( $settings ?: [], $defaults );
