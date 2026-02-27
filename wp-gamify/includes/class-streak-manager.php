@@ -296,6 +296,20 @@ class WPGamify_Streak_Manager {
         }
 
         $birthday = get_user_meta( $user_id, '_wpgamify_birthday', true );
+
+        // Fallback: sync from WooCommerce billing_birthday if our meta is empty.
+        if ( empty( $birthday ) ) {
+            $billing_bday = get_user_meta( $user_id, 'billing_birthday', true );
+            if ( ! empty( $billing_bday ) ) {
+                // billing_birthday is typically YYYY-MM-DD; extract MM-DD.
+                $parts = explode( '-', $billing_bday );
+                if ( count( $parts ) >= 3 ) {
+                    $birthday = $parts[1] . '-' . $parts[2];
+                    update_user_meta( $user_id, '_wpgamify_birthday', $birthday );
+                }
+            }
+        }
+
         if ( empty( $birthday ) ) {
             return;
         }

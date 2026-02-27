@@ -40,7 +40,7 @@ class WPGamify_Campaign_Manager {
             return;
         }
 
-        add_filter( 'gamify_xp_before_award', [ self::class, 'apply_multiplier' ], 10, 4 );
+        add_filter( 'gamify_xp_before_award', [ self::class, 'apply_multiplier' ], 20, 4 );
         self::$filter_registered = true;
     }
 

@@ -123,6 +123,6 @@ class WPGamify_API_Register {
      * @return bool Giris yapmis ise true.
      */
     public function check_logged_in(): bool {
-        return is_user_logged_in();
+        return current_user_can( 'read' );
     }
 }

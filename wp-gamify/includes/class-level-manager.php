@@ -49,18 +49,22 @@ class WPGamify_Level_Manager {
      */
     public static function calculate_level( int $xp ): int {
         $levels  = self::get_all_levels();
+
+        if ( empty( $levels ) ) {
+            return 1; // No levels configured, default to 1.
+        }
+
         $current = 0;
 
         foreach ( $levels as $level ) {
             if ( $xp >= (int) $level['xp_required'] ) {
                 $current = (int) $level['level_number'];
             } else {
-                // Levels are sorted ASC by xp_required, no need to continue.
                 break;
             }
         }
 
-        return $current;
+        return max( 1, $current );
     }
 
     /**

@@ -31,14 +31,33 @@ class WPGamify_XP_Engine {
             return false;
         }
 
-        // Gunluk limit kontrolu.
+        global $wpdb;
+
+        // User-level lock to serialize concurrent XP awards.
+        $lock_name = "wpgamify_xp_{$user_id}";
+        $got_lock  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 3)', $lock_name ) );
+        if ( $got_lock !== 1 ) {
+            return false;
+        }
+
+        try {
+            return self::award_locked( $user_id, $amount, $source, $source_id, $note );
+        } finally {
+            $wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
+        }
+    }
+
+    /**
+     * Internal: Cap check + insert inside user lock.
+     */
+    private static function award_locked( int $user_id, int $amount, string $source, string $source_id, string $note ): bool|int {
+        // Gunluk limit kontrolu (now inside lock).
         $amount = WPGamify_Anti_Abuse::check_daily_cap( $user_id, $amount );
         if ( $amount <= 0 ) {
             return false;
         }
 
         // XP filtreleme (3. parti muedahale noktasi).
-        // Campaign Manager hooks into gamify_xp_before_award to apply multiplier.
         $final_amount = (int) apply_filters(
             'gamify_xp_before_award',
             $amount,
@@ -47,7 +66,7 @@ class WPGamify_XP_Engine {
             $source_id
         );
 
-        // Get campaign multiplier for DB record-keeping only (not for doubling).
+        // Get campaign multiplier for DB record-keeping only.
         $campaign_mult = WPGamify_Campaign_Manager::get_active_multiplier();
 
         if ( $final_amount <= 0 ) {

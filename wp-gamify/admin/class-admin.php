@@ -547,9 +547,19 @@ class WPGamify_Admin {
             'campaign_start', 'campaign_end',
         ];
 
+        // XP amount keys that must be >= 1 when set.
+        $xp_amount_keys = [
+            'xp_order_base', 'xp_order_per_currency', 'xp_first_order_bonus',
+            'xp_review_amount', 'xp_login_amount',
+            'xp_birthday_amount', 'xp_anniversary_amount', 'xp_registration_amount',
+        ];
+
         foreach ( $int_keys as $key ) {
             if ( isset( $settings[ $key ] ) ) {
-                $sanitized[ $key ] = max( 0, (int) $settings[ $key ] );
+                $value = (int) $settings[ $key ];
+                $sanitized[ $key ] = in_array( $key, $xp_amount_keys, true )
+                    ? max( 1, $value )
+                    : max( 0, $value );
             }
         }
         foreach ( $float_keys as $key ) {
