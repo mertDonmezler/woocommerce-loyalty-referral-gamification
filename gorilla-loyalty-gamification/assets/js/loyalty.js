@@ -160,6 +160,17 @@
         var btn = document.getElementById('gorilla-spin-btn');
         if (!canvas || !btn) return;
 
+        btn.setAttribute('aria-label', 'Carki cevir');
+        canvas.setAttribute('tabindex', '0');
+        canvas.setAttribute('role', 'img');
+        canvas.setAttribute('aria-label', 'Sans carki');
+        canvas.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                btn.click();
+            }
+        });
+
         var ctx = canvas.getContext('2d');
         var prizes = [];
         try {

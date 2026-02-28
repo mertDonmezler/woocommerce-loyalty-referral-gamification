@@ -115,7 +115,8 @@ if (!function_exists('gorilla_credit_check_expiry')) {
                  AND expires_at <= %s
                  AND amount > 0
                  AND type NOT IN ('expired', 'expired_processed')
-                 GROUP BY user_id",
+                 GROUP BY user_id
+                 LIMIT 500",
                 $now
             )
         );

@@ -22,9 +22,10 @@ if ( is_array( $settings ) && ! empty( $settings['keep_data_on_uninstall'] ) ) {
 
 /* ─── Always remove plugin options ─────────────────────────────────── */
 
-$wpdb->query(
-    "DELETE FROM {$wpdb->options} WHERE option_name LIKE 'wpgamify\_%'"
-);
+$wpdb->query( $wpdb->prepare(
+    "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+    $wpdb->esc_like( 'wpgamify_' ) . '%'
+) );
 
 /* ─── Clear all scheduled hooks ────────────────────────────────────── */
 
@@ -43,11 +44,11 @@ foreach ( $cron_hooks as $hook ) {
 
 /* ─── Delete transients ────────────────────────────────────────────── */
 
-$wpdb->query(
-    "DELETE FROM {$wpdb->options}
-     WHERE option_name LIKE '_transient_wpgamify\_%'
-        OR option_name LIKE '_transient_timeout_wpgamify\_%'"
-);
+$wpdb->query( $wpdb->prepare(
+    "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+    $wpdb->esc_like( '_transient_wpgamify_' ) . '%',
+    $wpdb->esc_like( '_transient_timeout_wpgamify_' ) . '%'
+) );
 
 /* ─── Drop tables if not keeping data ──────────────────────────────── */
 
@@ -66,7 +67,8 @@ if ( $keep_data !== 'yes' ) {
     }
 
     // Delete all user meta related to the plugin.
-    $wpdb->query(
-        "DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE 'wpgamify\_%'"
-    );
+    $wpdb->query( $wpdb->prepare(
+        "DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE %s",
+        $wpdb->esc_like( 'wpgamify_' ) . '%'
+    ) );
 }

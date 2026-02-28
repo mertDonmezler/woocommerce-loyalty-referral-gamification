@@ -30,7 +30,20 @@ if (!function_exists('gorilla_generate_coupon')) {
         );
         $params = wp_parse_args($params, $defaults);
 
-        $code = $params['prefix'] . '-' . strtoupper(wp_generate_password(8, false));
+        // Generate unique coupon code with collision check
+        $max_attempts = 5;
+        $code = '';
+        for ($attempt = 0; $attempt < $max_attempts; $attempt++) {
+            $candidate = $params['prefix'] . '-' . strtoupper(wp_generate_password(8, false));
+            $existing = get_page_by_title($candidate, OBJECT, 'shop_coupon');
+            if (!$existing) {
+                $code = $candidate;
+                break;
+            }
+        }
+        if (!$code) {
+            $code = $params['prefix'] . '-' . strtoupper(wp_generate_password(12, false));
+        }
 
         $coupon = new \WC_Coupon();
         $coupon->set_code($code);
@@ -63,10 +76,12 @@ if (!function_exists('gorilla_generate_coupon')) {
 
         $coupon->save();
 
-        if ($coupon->get_id()) {
-            $coupon->update_meta_data('_gorilla_coupon_reason', sanitize_text_field($params['reason']));
-            $coupon->save();
+        if (!$coupon->get_id()) {
+            return false;
         }
+
+        $coupon->update_meta_data('_gorilla_coupon_reason', sanitize_text_field($params['reason']));
+        $coupon->save();
 
         return $code;
     }

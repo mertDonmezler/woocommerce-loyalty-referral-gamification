@@ -33,6 +33,18 @@ class Gorilla_Migration_To_Gamify {
 
         global $wpdb;
 
+        // Verify WP Gamify tables exist before migration.
+        $required_tables = array(
+            $wpdb->prefix . 'gamify_xp_transactions',
+            $wpdb->prefix . 'gamify_user_levels',
+            $wpdb->prefix . 'gamify_streaks',
+        );
+        foreach ($required_tables as $req_table) {
+            if ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $req_table)) !== $req_table) {
+                return false; // WP Gamify tables not ready yet.
+            }
+        }
+
         // Check if old gorilla_xp_log table exists.
         $old_table = $wpdb->prefix . 'gorilla_xp_log';
         $table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $old_table));
@@ -226,11 +238,16 @@ class Gorilla_Migration_To_Gamify {
         if (empty($users)) return;
 
         foreach ($users as $row) {
+            $uid  = intval($row['user_id']);
             $bday = $row['meta_value'];
             $parts = explode('-', $bday);
             if (count($parts) >= 3) {
-                $mm_dd = $parts[1] . '-' . $parts[2];
-                update_user_meta(intval($row['user_id']), '_wpgamify_birthday', $mm_dd);
+                $month = intval($parts[1]);
+                $day   = intval($parts[2]);
+                if ($month >= 1 && $month <= 12 && $day >= 1 && $day <= 31) {
+                    $mm_dd = sprintf('%02d-%02d', $month, $day);
+                    update_user_meta($uid, '_wpgamify_birthday', $mm_dd);
+                }
             }
         }
     }

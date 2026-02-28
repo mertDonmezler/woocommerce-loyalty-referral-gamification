@@ -171,6 +171,87 @@ function gorilla_lg_gdpr_export_data($email_address, $page = 1) {
         }
     }
 
+    // Challenge progress
+    $challenges = get_user_meta($user_id, '_gorilla_challenges_progress', true);
+    if (!empty($challenges) && is_array($challenges)) {
+        $export_items[] = array(
+            'group_id'    => 'gorilla-loyalty',
+            'group_label' => 'Gorilla Loyalty',
+            'item_id'     => 'gorilla-challenges',
+            'data'        => array(
+                array('name' => __('Challenge Progress', 'gorilla-loyalty'), 'value' => wp_json_encode($challenges)),
+            ),
+        );
+    }
+
+    // Notifications
+    $notifications = get_user_meta($user_id, '_gorilla_notifications', true);
+    if (!empty($notifications) && is_array($notifications)) {
+        $export_items[] = array(
+            'group_id'    => 'gorilla-loyalty',
+            'group_label' => 'Gorilla Loyalty',
+            'item_id'     => 'gorilla-notifications',
+            'data'        => array(
+                array('name' => __('Notifications', 'gorilla-loyalty'), 'value' => wp_json_encode(array_slice($notifications, 0, 50))),
+            ),
+        );
+    }
+
+    // Credit transfer logs
+    $transfer_log = get_user_meta($user_id, '_gorilla_transfer_log', true);
+    if (!empty($transfer_log)) {
+        $export_items[] = array(
+            'group_id'    => 'gorilla-loyalty',
+            'group_label' => 'Gorilla Loyalty',
+            'item_id'     => 'gorilla-transfer-log',
+            'data'        => array(
+                array('name' => __('Transfer Log (Sent)', 'gorilla-loyalty'), 'value' => wp_json_encode($transfer_log)),
+            ),
+        );
+    }
+
+    $received_log = get_user_meta($user_id, '_gorilla_transfer_received_log', true);
+    if (!empty($received_log)) {
+        $export_items[] = array(
+            'group_id'    => 'gorilla-loyalty',
+            'group_label' => 'Gorilla Loyalty',
+            'item_id'     => 'gorilla-transfer-received',
+            'data'        => array(
+                array('name' => __('Transfer Log (Received)', 'gorilla-loyalty'), 'value' => wp_json_encode($received_log)),
+            ),
+        );
+    }
+
+    // Churn data
+    $churn_risk = get_user_meta($user_id, '_gorilla_churn_risk', true);
+    $churn_last = get_user_meta($user_id, '_gorilla_churn_last_order', true);
+    if ($churn_risk !== '' || $churn_last !== '') {
+        $export_items[] = array(
+            'group_id'    => 'gorilla-loyalty',
+            'group_label' => 'Gorilla Loyalty',
+            'item_id'     => 'gorilla-churn',
+            'data'        => array(
+                array('name' => __('Churn Risk Score', 'gorilla-loyalty'), 'value' => $churn_risk ?: '0'),
+                array('name' => __('Last Order Date', 'gorilla-loyalty'), 'value' => $churn_last ?: '-'),
+            ),
+        );
+    }
+
+    // Tier tracking
+    $tier_key = get_user_meta($user_id, '_gorilla_lr_tier_key', true);
+    $grace_until = get_user_meta($user_id, '_gorilla_tier_grace_until', true);
+    if ($tier_key || $grace_until) {
+        $export_items[] = array(
+            'group_id'    => 'gorilla-loyalty',
+            'group_label' => 'Gorilla Loyalty',
+            'item_id'     => 'gorilla-tier-tracking',
+            'data'        => array(
+                array('name' => __('Tier Key', 'gorilla-loyalty'), 'value' => $tier_key ?: 'none'),
+                array('name' => __('Grace Period Until', 'gorilla-loyalty'), 'value' => $grace_until ?: '-'),
+            ),
+        );
+    }
+
     return array('data' => $export_items, 'done' => true);
 }
 
@@ -262,7 +343,28 @@ function gorilla_lg_gdpr_erase_data($email_address, $page = 1) {
     ));
     if ($churn_deleted) $items_removed += $churn_deleted;
 
+    // Social share daily guard keys
+    $share_deleted = $wpdb->query($wpdb->prepare(
+        "DELETE FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key LIKE %s",
+        $user_id, $wpdb->esc_like('_gorilla_share_') . '%'
+    ));
+    if ($share_deleted) $items_removed += $share_deleted;
+
     // XP expiry guard keys: WP Gamify GDPR handles _wpgamify_xp_expiry_* and _wpgamify_xp_warn_*
+    // Fallback cleanup if WP Gamify is inactive
+    if (!defined('WPGAMIFY_VERSION')) {
+        $xp_expiry_deleted = $wpdb->query($wpdb->prepare(
+            "DELETE FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key LIKE %s",
+            $user_id, $wpdb->esc_like('_wpgamify_xp_expiry_') . '%'
+        ));
+        if ($xp_expiry_deleted) $items_removed += $xp_expiry_deleted;
+
+        $xp_warn_deleted = $wpdb->query($wpdb->prepare(
+            "DELETE FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key LIKE %s",
+            $user_id, $wpdb->esc_like('_wpgamify_xp_warn_') . '%'
+        ));
+        if ($xp_warn_deleted) $items_removed += $xp_warn_deleted;
+    }
 
     // Smart coupon guard key'lerini temizle
     $smart_deleted = $wpdb->query($wpdb->prepare(
@@ -295,7 +397,7 @@ function gorilla_lg_gdpr_erase_data($email_address, $page = 1) {
     delete_user_meta($user_id, '_gorilla_credit_log');
 
     // Kullaniciya ozel transient'leri temizle
-    delete_transient('gorilla_spending_' . $user_id);
+    delete_user_meta($user_id, '_gorilla_spending_cache');
     delete_transient('gorilla_lr_bar_' . $user_id);
 
     return array(
@@ -323,6 +425,10 @@ add_action('admin_init', function() {
 <li><strong>Dogum Tarihi:</strong> Dogum gunu odulleri icin girdiginiz dogum tarihiniz saklanir.</li>
 <li><strong>SMS Tercihleri:</strong> SMS bildirimleri icin sakladiginiz telefon numaraniz ve tercihleriniz.</li>
 <li><strong>Store Credit:</strong> Hesabinizdaki store credit bakiyesi ve islem gecmisiniz (kazanma, harcama, transfer) saklanir.</li>
+<li><strong>Challenge Ilerlemesi:</strong> Tamamladiginiz veya devam eden challenge gorevlerinizin ilerleme verileri saklanir.</li>
+<li><strong>Kredi Transfer Kayitlari:</strong> Diger kullanicilara gonderdiginiz veya aldiginiz store credit transfer gecmisiniz kayit altina alinir.</li>
+<li><strong>Churn Risk Skorlama:</strong> Alisveris sikligi ve son siparis tarihinize gore otomatik olarak hesaplanan churn risk skorunuz saklanir.</li>
+<li><strong>Bildirim Gecmisi:</strong> Hesabinizla ilgili sistem bildirimleri gecici olarak saklanir.</li>
 </ul>
 
 <p>Bu veriler, sadakat ve gamification programi hizmetlerinin sunulmasi amaciyla islenmektedir. Kisisel verilerinizin silinmesini veya disa aktarilmasini WordPress gizlilik araclari uzerinden talep edebilirsiniz.</p>

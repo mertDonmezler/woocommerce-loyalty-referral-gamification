@@ -833,6 +833,28 @@ function gorilla_affiliate_fraud_check() {
 
     if (empty($affiliates)) return;
 
+    // Pre-compute top IP counts per affiliate in single query (avoids N+1)
+    $top_ip_data = $wpdb->get_results($wpdb->prepare(
+        "SELECT referrer_user_id, MAX(ip_cnt) AS top_ip_count FROM (
+            SELECT referrer_user_id, visitor_ip, COUNT(*) AS ip_cnt
+            FROM {$table}
+            WHERE clicked_at >= %s
+            GROUP BY referrer_user_id, visitor_ip
+        ) sub GROUP BY referrer_user_id",
+        $since
+    ), OBJECT_K);
+
+    // Pre-compute burst counts per affiliate in single query (avoids N+1)
+    $burst_data = $wpdb->get_results($wpdb->prepare(
+        "SELECT referrer_user_id, MAX(hourly_cnt) AS burst_count FROM (
+            SELECT referrer_user_id, COUNT(*) AS hourly_cnt
+            FROM {$table}
+            WHERE clicked_at >= %s
+            GROUP BY referrer_user_id, DATE(clicked_at), HOUR(clicked_at)
+        ) sub GROUP BY referrer_user_id",
+        $since
+    ), OBJECT_K);
+
     $flagged = array();
 
     foreach ($affiliates as $aff) {
@@ -843,18 +865,8 @@ function gorilla_affiliate_fraud_check() {
         $reasons  = array();
         $score    = 0;
 
-        // Check 1: IP concentration
-        $top_ip_count = $wpdb->get_var($wpdb->prepare(
-            "SELECT cnt FROM (
-                SELECT COUNT(*) AS cnt
-                FROM {$table}
-                WHERE referrer_user_id = %d AND clicked_at >= %s
-                GROUP BY visitor_ip
-                ORDER BY cnt DESC
-                LIMIT 1
-            ) AS top_ip",
-            $user_id, $since
-        ));
+        // Check 1: IP concentration (bulk pre-computed)
+        $top_ip_count = isset($top_ip_data[$user_id]) ? intval($top_ip_data[$user_id]->top_ip_count) : 0;
         $top_ip_pct = $total > 0 ? ($top_ip_count / $total) * 100 : 0;
 
         if ($top_ip_pct > 60 && $total >= 15) {
@@ -869,18 +881,10 @@ function gorilla_affiliate_fraud_check() {
             $score += 25;
         }
 
-        // Check 3: Rapid burst clicks
-        $burst = $wpdb->get_var($wpdb->prepare(
-            "SELECT MAX(cnt) FROM (
-                SELECT COUNT(*) as cnt
-                FROM {$table}
-                WHERE referrer_user_id = %d AND clicked_at >= %s
-                GROUP BY DATE(clicked_at), HOUR(clicked_at)
-            ) sub",
-            $user_id, $since
-        ));
-        if ($burst && intval($burst) > 10) {
-            $reasons[] = sprintf('Hizli tiklamalar: Tek saatte %d tiklama tespit edildi', intval($burst));
+        // Check 3: Rapid burst clicks (bulk pre-computed)
+        $burst = isset($burst_data[$user_id]) ? intval($burst_data[$user_id]->burst_count) : 0;
+        if ($burst > 10) {
+            $reasons[] = sprintf('Hizli tiklamalar: Tek saatte %d tiklama tespit edildi', $burst);
             $score += 25;
         }
 

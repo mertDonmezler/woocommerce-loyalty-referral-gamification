@@ -150,11 +150,20 @@ class WPGamify_Anti_Abuse {
             ) );
         }
 
-        // Kullanici meta ile suphe sayaci.
-        $count = (int) get_user_meta( $user_id, 'wpgamify_suspicious_count', true );
-        update_user_meta( $user_id, 'wpgamify_suspicious_count', $count + 1 );
+        // Kullanici meta ile suphe sayaci (atomic increment).
+        global $wpdb;
+        $wpdb->query( $wpdb->prepare(
+            "UPDATE {$wpdb->usermeta} SET meta_value = CAST(meta_value AS UNSIGNED) + 1 WHERE user_id = %d AND meta_key = 'wpgamify_suspicious_count'",
+            $user_id
+        ) );
+        if ( $wpdb->rows_affected === 0 ) {
+            update_user_meta( $user_id, 'wpgamify_suspicious_count', 1 );
+        }
+        wp_cache_delete( $user_id, 'user_meta' );
         update_user_meta( $user_id, 'wpgamify_last_suspicious', current_time( 'mysql' ) );
         update_user_meta( $user_id, 'wpgamify_last_suspicious_reason', sanitize_text_field( $reason ) );
+
+        $count = (int) get_user_meta( $user_id, 'wpgamify_suspicious_count', true );
 
         /**
          * Supheli aktivite tespit edildiginde tetiklenir.
@@ -163,7 +172,7 @@ class WPGamify_Anti_Abuse {
          * @param string $reason  Sebep.
          * @param int    $count   Toplam suphe sayisi.
          */
-        do_action( 'gamify_suspicious_activity', $user_id, $reason, $count + 1 );
+        do_action( 'gamify_suspicious_activity', $user_id, $reason, $count );
     }
 
     /**

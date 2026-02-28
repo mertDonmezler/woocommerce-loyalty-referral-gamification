@@ -34,11 +34,6 @@ class WPGamify_Deactivator {
         ];
 
         foreach ( $hooks as $hook ) {
-            $timestamp = wp_next_scheduled( $hook );
-            if ( $timestamp ) {
-                wp_unschedule_event( $timestamp, $hook );
-            }
-            // Tum zamanlamalari kaldir.
             wp_unschedule_hook( $hook );
         }
     }

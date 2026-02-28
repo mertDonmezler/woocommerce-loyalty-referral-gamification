@@ -175,7 +175,8 @@ register_activation_hook(__FILE__, function() {
         KEY referrer_user_id (referrer_user_id),
         KEY referrer_code (referrer_code),
         KEY converted (converted),
-        KEY clicked_at (clicked_at)
+        KEY clicked_at (clicked_at),
+        KEY referrer_clicked (referrer_user_id, clicked_at)
     ) {$charset};";
 
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');

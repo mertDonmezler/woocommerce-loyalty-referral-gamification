@@ -106,6 +106,24 @@ function gorilla_ra_gdpr_export_data($email_address, $page = 1) {
         );
     }
 
+    // Fraud detection data
+    $fraud_keys = array('_gorilla_affiliate_fraud_score', '_gorilla_affiliate_fraud_level', '_gorilla_affiliate_fraud_reasons', '_gorilla_affiliate_fraud_date');
+    $fraud_data = array();
+    foreach ($fraud_keys as $fk) {
+        $val = get_user_meta($user_id, $fk, true);
+        if ($val !== '' && $val !== false) {
+            $fraud_data[] = array('name' => str_replace('_gorilla_affiliate_', '', $fk), 'value' => is_array($val) ? wp_json_encode($val) : (string)$val);
+        }
+    }
+    if (!empty($fraud_data)) {
+        $export_items[] = array(
+            'group_id'    => 'gorilla-referral',
+            'group_label' => 'Gorilla Referral & Affiliate',
+            'item_id'     => 'gorilla-affiliate-fraud',
+            'data'        => $fraud_data,
+        );
+    }
+
     return array('data' => $export_items, 'done' => true);
 }
 

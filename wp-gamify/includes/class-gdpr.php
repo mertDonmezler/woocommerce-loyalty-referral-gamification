@@ -123,6 +123,35 @@ class WPGamify_GDPR {
             ];
         }
 
+        // Anti-abuse metadata.
+        $anti_abuse_keys = array( 'wpgamify_last_ip', 'wpgamify_suspicious_count', 'wpgamify_last_suspicious', 'wpgamify_last_suspicious_reason' );
+        foreach ( $anti_abuse_keys as $key ) {
+            $val = get_user_meta( $user_id, $key, true );
+            if ( $val !== '' && $val !== false ) {
+                $data[] = array(
+                    'group_id'    => 'wpgamify',
+                    'group_label' => 'WP Gamify',
+                    'item_id'     => 'wpgamify-' . $key,
+                    'data'        => array(
+                        array( 'name' => $key, 'value' => $val ),
+                    ),
+                );
+            }
+        }
+
+        // Birthday metadata.
+        $birthday = get_user_meta( $user_id, '_wpgamify_birthday', true );
+        if ( $birthday !== '' && $birthday !== false ) {
+            $data[] = array(
+                'group_id'    => 'wpgamify',
+                'group_label' => 'WP Gamify',
+                'item_id'     => 'wpgamify-birthday',
+                'data'        => array(
+                    array( 'name' => 'Dogum Gunu', 'value' => $birthday ),
+                ),
+            );
+        }
+
         $done = count( $transactions ) < $per_page;
 
         return [ 'data' => $data, 'done' => $done ];

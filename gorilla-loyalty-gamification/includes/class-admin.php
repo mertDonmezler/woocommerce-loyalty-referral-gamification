@@ -690,7 +690,7 @@ add_action('wp_ajax_gorilla_tier_simulate', function() {
     check_ajax_referer('gorilla_tier_simulate');
 
     $period = max(1, min(24, intval($_POST['period'] ?? 6)));
-    $thresholds = json_decode(stripslashes($_POST['thresholds'] ?? '{}'), true);
+    $thresholds = json_decode(wp_unslash($_POST['thresholds'] ?? '{}'), true);
     if (!is_array($thresholds)) $thresholds = array();
 
     // Sanitize thresholds
@@ -806,11 +806,20 @@ function gorilla_admin_csv_export() {
             $table = $wpdb->prefix . 'gorilla_credit_log';
             if (function_exists('gorilla_lr_table_exists') && gorilla_lr_table_exists($table)) {
                 $rows = $wpdb->get_results($wpdb->prepare(
-                    "SELECT * FROM {$table} WHERE created_at BETWEEN %s AND %s ORDER BY created_at DESC",
+                    "SELECT * FROM {$table} WHERE created_at BETWEEN %s AND %s ORDER BY created_at DESC LIMIT 10000",
                     $from, $to_end
                 ));
+                // Batch load all users to avoid N+1
+                $user_ids = array_unique(array_map(function($r) { return intval($r->user_id); }, $rows));
+                $users_map = array();
+                if (!empty($user_ids)) {
+                    $batch_users = get_users(array('include' => $user_ids, 'fields' => array('ID', 'display_name', 'user_email')));
+                    foreach ($batch_users as $u) {
+                        $users_map[$u->ID] = $u;
+                    }
+                }
                 foreach ($rows as $row) {
-                    $user = get_userdata($row->user_id);
+                    $user = isset($users_map[intval($row->user_id)]) ? $users_map[intval($row->user_id)] : null;
                     fputcsv($output, array(
                         $row->id,
                         $row->user_id,
@@ -828,11 +837,20 @@ function gorilla_admin_csv_export() {
             fputcsv($output, array('ID', 'User ID', 'User Name', 'XP', 'Source', 'Description', 'Date'));
             $table = $wpdb->prefix . 'gamify_xp_transactions';
             $rows = $wpdb->get_results($wpdb->prepare(
-                "SELECT * FROM {$table} WHERE created_at BETWEEN %s AND %s ORDER BY created_at DESC",
+                "SELECT * FROM {$table} WHERE created_at BETWEEN %s AND %s ORDER BY created_at DESC LIMIT 10000",
                 $from, $to_end
             ));
+            // Batch load all users to avoid N+1
+            $user_ids = array_unique(array_map(function($r) { return intval($r->user_id); }, $rows));
+            $users_map = array();
+            if (!empty($user_ids)) {
+                $batch_users = get_users(array('include' => $user_ids, 'fields' => array('ID', 'display_name', 'user_email')));
+                foreach ($batch_users as $u) {
+                    $users_map[$u->ID] = $u;
+                }
+            }
             foreach ($rows as $row) {
-                $user = get_userdata($row->user_id);
+                $user = isset($users_map[intval($row->user_id)]) ? $users_map[intval($row->user_id)] : null;
                 fputcsv($output, array(
                     $row->id,
                     $row->user_id,
@@ -850,11 +868,21 @@ function gorilla_admin_csv_export() {
             $table = $wpdb->prefix . 'gorilla_affiliate_clicks';
             if (function_exists('gorilla_lr_table_exists') && gorilla_lr_table_exists($table)) {
                 $rows = $wpdb->get_results($wpdb->prepare(
-                    "SELECT * FROM {$table} WHERE created_at BETWEEN %s AND %s ORDER BY created_at DESC",
+                    "SELECT * FROM {$table} WHERE created_at BETWEEN %s AND %s ORDER BY created_at DESC LIMIT 10000",
                     $from, $to_end
                 ));
+                // Batch load all users to avoid N+1
+                $user_ids = array_unique(array_filter(array_map(function($r) { return intval($r->affiliate_id ?? 0); }, $rows)));
+                $users_map = array();
+                if (!empty($user_ids)) {
+                    $batch_users = get_users(array('include' => $user_ids, 'fields' => array('ID', 'display_name', 'user_email')));
+                    foreach ($batch_users as $u) {
+                        $users_map[$u->ID] = $u;
+                    }
+                }
                 foreach ($rows as $row) {
-                    $user = get_userdata($row->affiliate_id ?? 0);
+                    $uid = intval($row->affiliate_id ?? 0);
+                    $user = isset($users_map[$uid]) ? $users_map[$uid] : null;
                     fputcsv($output, array(
                         $row->id,
                         $row->affiliate_id ?? '',
@@ -876,9 +904,18 @@ function gorilla_admin_csv_export() {
                 "SELECT user_id, SUM(amount) as total_xp FROM {$table} WHERE created_at BETWEEN %s AND %s GROUP BY user_id ORDER BY total_xp DESC LIMIT 100",
                 $from, $to_end
             ));
+            // Batch load all users to avoid N+1
+            $user_ids = array_unique(array_map(function($r) { return intval($r->user_id); }, $rows));
+            $users_map = array();
+            if (!empty($user_ids)) {
+                $batch_users = get_users(array('include' => $user_ids, 'fields' => array('ID', 'display_name', 'user_email')));
+                foreach ($batch_users as $u) {
+                    $users_map[$u->ID] = $u;
+                }
+            }
             $rank = 1;
             foreach ($rows as $row) {
-                $user = get_userdata($row->user_id);
+                $user = isset($users_map[intval($row->user_id)]) ? $users_map[intval($row->user_id)] : null;
                 $level = function_exists('gorilla_xp_calculate_level') ? gorilla_xp_calculate_level($row->user_id) : array('label' => 'N/A');
                 $tier = function_exists('gorilla_lr_get_user_tier') ? gorilla_lr_get_user_tier($row->user_id) : array('label' => 'N/A');
                 fputcsv($output, array(

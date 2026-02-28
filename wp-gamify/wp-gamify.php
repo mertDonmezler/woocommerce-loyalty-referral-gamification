@@ -240,11 +240,11 @@ add_action( 'plugins_loaded', function (): void {
 add_action( 'wpgamify_hourly_cache', function (): void {
     // Hourly cache maintenance: clear stale transients
     global $wpdb;
-    $wpdb->query(
-        "DELETE FROM {$wpdb->options}
-         WHERE option_name LIKE '_transient_wpgamify_%'
-         AND option_name NOT LIKE '_transient_timeout_wpgamify_%'"
-    );
+    $wpdb->query( $wpdb->prepare(
+        "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s AND option_name NOT LIKE %s",
+        $wpdb->esc_like( '_transient_wpgamify_' ) . '%',
+        $wpdb->esc_like( '_transient_timeout_wpgamify_' ) . '%'
+    ) );
 });
 
 add_action( 'wpgamify_daily_maintenance', function (): void {
@@ -252,7 +252,7 @@ add_action( 'wpgamify_daily_maintenance', function (): void {
     global $wpdb;
     $table = $wpdb->prefix . 'gamify_streaks';
     if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table ) {
-        $wpdb->query( "UPDATE {$table} SET streak_xp_today = 0 WHERE streak_xp_today > 0" );
+        $wpdb->query( "UPDATE `{$table}` SET streak_xp_today = 0 WHERE streak_xp_today > 0" );
     }
 
     // Run streak daily maintenance (check for broken streaks).

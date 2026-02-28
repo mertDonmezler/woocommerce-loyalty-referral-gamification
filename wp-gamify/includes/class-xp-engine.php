@@ -166,6 +166,13 @@ class WPGamify_XP_Engine {
 
         $wpdb->query( 'START TRANSACTION' );
 
+        // Prevent negative XP balance.
+        $current_xp = self::get_total_xp( $user_id );
+        if ( $current_xp < $amount ) {
+            $wpdb->query( 'ROLLBACK' );
+            return false;
+        }
+
         try {
             $inserted = $wpdb->insert(
                 $wpdb->prefix . 'gamify_xp_transactions',

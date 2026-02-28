@@ -276,7 +276,7 @@ add_action('woocommerce_account_gorilla-referral_endpoint', function() {
                 <p style="font-size:13px; color:#6b7280;">Bu QR kodu paylasarak yeni musteriler kazandirin.</p>
                 <?php if (!empty($qr_url)): ?>
                 <div style="margin:16px 0;">
-                    <img src="<?php echo esc_url($qr_url); ?>" alt="QR Kod" style="max-width:200px; border:2px solid #e5e7eb; border-radius:12px; padding:8px; background:#fff;">
+                    <img src="<?php echo esc_url($qr_url); ?>" alt="QR Kod" style="max-width:200px; border:2px solid #e5e7eb; border-radius:12px; padding:8px; background:#fff;" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<p style=\'color:#999;font-size:13px;\'>QR kod yuklenemedi.</p>');">
                 </div>
                 <a href="<?php echo esc_url(admin_url('admin-ajax.php?action=gorilla_download_qr&nonce=' . $qr_download_nonce)); ?>"
                    class="glr-btn" style="display:inline-block; width:auto; padding:10px 24px; font-size:14px;">

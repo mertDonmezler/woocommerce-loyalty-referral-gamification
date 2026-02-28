@@ -127,8 +127,8 @@ if (defined('WP_CLI') && WP_CLI) {
     }, 25);
 }
 
-// ── Activation ───────────────────────────────────────────
-register_activation_hook(__FILE__, function() {
+// ── Activation (single site) ─────────────────────────────
+function gorilla_lg_activate_single() {
     // XP log table: Legacy - kept for migration to WP Gamify.
     // All new XP data goes to gamify_xp_transactions (WP Gamify).
     // This table is only created/maintained for backward compat during migration.
@@ -219,14 +219,42 @@ register_activation_hook(__FILE__, function() {
 
     update_option('gorilla_lg_version', GORILLA_LG_VERSION);
     update_option('gorilla_lg_flush_needed', 'yes');
+}
+
+// ── Activation Hook (multisite-aware) ────────────────────
+register_activation_hook(__FILE__, function($network_wide = false) {
+    if (is_multisite() && $network_wide) {
+        $sites = get_sites(array('fields' => 'ids', 'number' => 1000));
+        foreach ($sites as $site_id) {
+            switch_to_blog($site_id);
+            gorilla_lg_activate_single();
+            restore_current_blog();
+        }
+    } else {
+        gorilla_lg_activate_single();
+    }
 });
 
-// ── Deactivation ─────────────────────────────────────────
-register_deactivation_hook(__FILE__, function() {
-    wp_clear_scheduled_hook('gorilla_lr_daily_tier_check');
-    wp_clear_scheduled_hook('gorilla_sc_daily_check');
-    wp_clear_scheduled_hook('gorilla_meta_cleanup_weekly');
+// ── Deactivation (single site) ──────────────────────────
+function gorilla_lg_deactivate_single() {
+    wp_unschedule_hook('gorilla_lr_daily_tier_check');
+    wp_unschedule_hook('gorilla_sc_daily_check');
+    wp_unschedule_hook('gorilla_meta_cleanup_weekly');
     flush_rewrite_rules();
+}
+
+// ── Deactivation Hook (multisite-aware) ──────────────────
+register_deactivation_hook(__FILE__, function($network_wide = false) {
+    if (is_multisite() && $network_wide) {
+        $sites = get_sites(array('fields' => 'ids', 'number' => 1000));
+        foreach ($sites as $site_id) {
+            switch_to_blog($site_id);
+            gorilla_lg_deactivate_single();
+            restore_current_blog();
+        }
+    } else {
+        gorilla_lg_deactivate_single();
+    }
 });
 
 // ── Permalink Flush ──────────────────────────────────────
@@ -797,9 +825,7 @@ add_action('gamify_level_up', function($user_id, $old_level, $new_level) {
     $new_level_data = function_exists('gorilla_xp_calculate_level') ? gorilla_xp_calculate_level($user_id) : array();
     $old_level_data = array('number' => $old_level, 'label' => '');
 
-    if (function_exists('gorilla_email_level_up')) {
-        gorilla_email_level_up($user_id, $old_level_data, $new_level_data);
-    }
+    // Email is sent via the gorilla_xp_level_up hook in class-emails.php.
     if (function_exists('gorilla_badge_check_all')) {
         gorilla_badge_check_all($user_id);
     }
@@ -826,13 +852,41 @@ add_action('gamify_xp_expiry_warning', function($user_id, $expiring_xp, $expiry_
 // ── Data Migration to WP Gamify ─────────────────────────
 add_action('admin_init', function() {
     if (!get_option('_gorilla_migrated_to_gamify') && class_exists('WPGamify_XP_Engine')) {
-        $migration_file = GORILLA_LG_PATH . 'includes/class-migration-to-gamify.php';
-        if (file_exists($migration_file)) {
-            require_once $migration_file;
-            Gorilla_Migration_To_Gamify::run();
+        // Prevent concurrent migration runs.
+        if (get_transient('_gorilla_migration_running')) return;
+        set_transient('_gorilla_migration_running', true, 300);
+        try {
+            $migration_file = GORILLA_LG_PATH . 'includes/class-migration-to-gamify.php';
+            if (file_exists($migration_file)) {
+                require_once $migration_file;
+                Gorilla_Migration_To_Gamify::run();
+            }
+        } finally {
+            delete_transient('_gorilla_migration_running');
         }
     }
 });
+
+// ── Version Upgrade Migration Path ──────────────────────
+add_action('admin_init', function() {
+    $stored_version = get_option('gorilla_lg_version', '0');
+    if (version_compare($stored_version, GORILLA_LG_VERSION, '<')) {
+        // Run any upgrade-specific logic here.
+        // For now, just update the stored version.
+        update_option('gorilla_lg_version', GORILLA_LG_VERSION);
+
+        // Re-run activation defaults for new options.
+        $new_defaults = array(
+            'gorilla_lr_credit_min_order' => 0,
+            'gorilla_lr_credit_expiry_days' => 0,
+        );
+        foreach ($new_defaults as $key => $val) {
+            if (get_option($key) === false) {
+                update_option($key, $val);
+            }
+        }
+    }
+}, 5);
 
 // ── Plugin Action Links ──────────────────────────────────
 add_filter('plugin_action_links_' . GORILLA_LG_BASENAME, function($links) {

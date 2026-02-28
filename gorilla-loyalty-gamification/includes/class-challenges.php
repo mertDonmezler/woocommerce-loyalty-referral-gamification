@@ -121,48 +121,56 @@ function gorilla_challenges_increment($user_id, $type, $amount = 1) {
     if (!$user_id || $amount <= 0) return;
     if (get_option('gorilla_lr_challenges_enabled', 'no') !== 'yes') return;
 
-    $challenges = gorilla_challenges_get_all();
-    if (empty($challenges)) return;
+    global $wpdb;
+    $lock_name = "gorilla_challenges_{$user_id}";
+    $got_lock = (int) $wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s, 2)', $lock_name));
+    if (!$got_lock) return;
+    try {
+        $challenges = gorilla_challenges_get_all();
+        if (empty($challenges)) return;
 
-    $progress = gorilla_challenges_get_progress($user_id);
-    $changed  = false;
+        $progress = gorilla_challenges_get_progress($user_id);
+        $changed  = false;
 
-    foreach ($challenges as $challenge) {
-        if (!is_array($challenge) || empty($challenge['active'])) continue;
-        if (($challenge['type'] ?? '') !== $type) continue;
+        foreach ($challenges as $challenge) {
+            if (!is_array($challenge) || empty($challenge['active'])) continue;
+            if (($challenge['type'] ?? '') !== $type) continue;
 
-        $cid        = $challenge['id'] ?? '';
-        $period     = $challenge['period'] ?? 'one_time';
-        $target     = intval($challenge['target'] ?? 0);
-        $period_key = gorilla_challenges_period_key($period);
+            $cid        = $challenge['id'] ?? '';
+            $period     = $challenge['period'] ?? 'one_time';
+            $target     = intval($challenge['target'] ?? 0);
+            $period_key = gorilla_challenges_period_key($period);
 
-        if (!$cid || $target <= 0) continue;
+            if (!$cid || $target <= 0) continue;
 
-        $entry = $progress[$cid] ?? array();
+            $entry = $progress[$cid] ?? array();
 
-        if ($period === 'one_time' && !empty($entry['completed'])) continue;
+            if ($period === 'one_time' && !empty($entry['completed'])) continue;
 
-        if ($period !== 'one_time' && ($entry['period_key'] ?? '') !== $period_key) {
-            $entry = array('current' => 0, 'period_key' => $period_key, 'completed' => false);
+            if ($period !== 'one_time' && ($entry['period_key'] ?? '') !== $period_key) {
+                $entry = array('current' => 0, 'period_key' => $period_key, 'completed' => false);
+            }
+
+            if (!empty($entry['completed'])) continue;
+
+            $entry['current']    = min($target, intval($entry['current'] ?? 0) + $amount);
+            $entry['period_key'] = $period_key;
+
+            if ($entry['current'] >= $target && !$entry['completed']) {
+                $entry['completed']    = true;
+                $entry['completed_at'] = current_time('mysql');
+                gorilla_challenges_award_reward($user_id, $challenge);
+            }
+
+            $progress[$cid] = $entry;
+            $changed = true;
         }
 
-        if (!empty($entry['completed'])) continue;
-
-        $entry['current']    = min($target, intval($entry['current'] ?? 0) + $amount);
-        $entry['period_key'] = $period_key;
-
-        if ($entry['current'] >= $target) {
-            $entry['completed']    = true;
-            $entry['completed_at'] = current_time('mysql');
-            gorilla_challenges_award_reward($user_id, $challenge);
+        if ($changed) {
+            update_user_meta($user_id, '_gorilla_challenges_progress', $progress);
         }
-
-        $progress[$cid] = $entry;
-        $changed = true;
-    }
-
-    if ($changed) {
-        update_user_meta($user_id, '_gorilla_challenges_progress', $progress);
+    } finally {
+        $wpdb->query($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lock_name));
     }
 }
 

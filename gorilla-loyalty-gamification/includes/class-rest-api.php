@@ -71,7 +71,16 @@ function gorilla_lg_register_rest_routes() {
         'callback'            => 'gorilla_lg_rest_shop_redeem',
         'permission_callback' => 'gorilla_lg_rest_check_auth',
         'args'                => array(
-            'reward_id' => array('required' => true, 'sanitize_callback' => 'sanitize_key'),
+            'reward_id' => array(
+                'required'          => true,
+                'sanitize_callback' => 'sanitize_key',
+                'validate_callback' => function($value) {
+                    if (empty($value)) return false;
+                    if (!function_exists('gorilla_shop_get_rewards')) return true;
+                    $rewards = gorilla_shop_get_rewards();
+                    return isset($rewards[sanitize_key($value)]);
+                },
+            ),
         ),
     ));
 
@@ -176,7 +185,7 @@ function gorilla_lg_rest_get_me(WP_REST_Request $request) {
         );
     }
 
-    return rest_ensure_response(array(
+    return new WP_REST_Response(array(
         'user_id'         => $user_id,
         'display_name'    => $user->display_name,
         'tier'            => $tier,
@@ -189,7 +198,7 @@ function gorilla_lg_rest_get_me(WP_REST_Request $request) {
             'loyalty_enabled' => get_option('gorilla_lr_enabled_loyalty') === 'yes',
             'xp_enabled'      => defined('WPGAMIFY_VERSION'),
         ),
-    ));
+    ), 200);
 }
 
 // ── /tier ───────────────────────────────────────────────
@@ -203,7 +212,7 @@ function gorilla_lg_rest_get_tier(WP_REST_Request $request) {
     $next = function_exists('gorilla_loyalty_next_tier') ? gorilla_loyalty_next_tier($user_id) : null;
     $period = get_option('gorilla_lr_period_months', 6);
 
-    return rest_ensure_response(array(
+    return new WP_REST_Response(array(
         'current' => array(
             'key'          => $tier['key'] ?? 'none',
             'label'        => $tier['label'] ?? 'Uye',
@@ -225,7 +234,7 @@ function gorilla_lg_rest_get_tier(WP_REST_Request $request) {
             'remaining' => floatval($next['remaining'] ?? 0),
             'progress'  => floatval($next['progress'] ?? 0),
         ) : null,
-    ));
+    ), 200);
 }
 
 // ── /tiers (public) ─────────────────────────────────────
@@ -249,10 +258,10 @@ function gorilla_lg_rest_get_all_tiers(WP_REST_Request $request) {
         );
     }
 
-    return rest_ensure_response(array(
+    return new WP_REST_Response(array(
         'tiers'         => $formatted,
         'period_months' => intval(get_option('gorilla_lr_period_months', 6)),
-    ));
+    ), 200);
 }
 
 // ── /badges ─────────────────────────────────────────────
@@ -261,10 +270,10 @@ function gorilla_lg_rest_get_badges(WP_REST_Request $request) {
     if (!function_exists('gorilla_badge_get_user_badges')) {
         return new WP_Error('not_available', 'Rozet sistemi kullanilamiyor.', array('status' => 503));
     }
-    return rest_ensure_response(array(
+    return new WP_REST_Response(array(
         'badges'  => gorilla_badge_get_user_badges($user_id),
         'enabled' => get_option('gorilla_lr_badges_enabled') === 'yes',
-    ));
+    ), 200);
 }
 
 // ── /leaderboard ────────────────────────────────────────
@@ -272,10 +281,10 @@ function gorilla_lg_rest_get_leaderboard(WP_REST_Request $request) {
     if (!function_exists('gorilla_xp_get_leaderboard')) {
         return new WP_Error('not_available', 'Leaderboard kullanilamiyor.', array('status' => 503));
     }
-    return rest_ensure_response(array(
+    return new WP_REST_Response(array(
         'leaderboard' => gorilla_xp_get_leaderboard('monthly', 10),
         'enabled'     => get_option('gorilla_lr_leaderboard_enabled') === 'yes',
-    ));
+    ), 200);
 }
 
 // ── /milestones ─────────────────────────────────────────
@@ -291,10 +300,10 @@ function gorilla_lg_rest_get_milestones(WP_REST_Request $request) {
         $progress = function_exists('gorilla_milestone_get_progress') ? gorilla_milestone_get_progress($user_id, $m) : 0;
         $result[] = array_merge($m, array('progress' => $progress, 'completed' => in_array($mid, $completed)));
     }
-    return rest_ensure_response(array(
+    return new WP_REST_Response(array(
         'milestones' => $result,
         'enabled'    => get_option('gorilla_lr_milestones_enabled') === 'yes',
-    ));
+    ), 200);
 }
 
 // ── /shop ───────────────────────────────────────────────
@@ -302,11 +311,11 @@ function gorilla_lg_rest_get_shop(WP_REST_Request $request) {
     $user_id = get_current_user_id();
     $rewards = function_exists('gorilla_shop_get_rewards') ? gorilla_shop_get_rewards() : array();
     $xp = function_exists('gorilla_xp_get_balance') ? gorilla_xp_get_balance($user_id) : 0;
-    return rest_ensure_response(array(
+    return new WP_REST_Response(array(
         'rewards'    => $rewards,
         'xp_balance' => $xp,
         'enabled'    => get_option('gorilla_lr_points_shop_enabled') === 'yes',
-    ));
+    ), 200);
 }
 
 // ── /shop/redeem ────────────────────────────────────────
@@ -324,7 +333,7 @@ function gorilla_lg_rest_shop_redeem(WP_REST_Request $request) {
     }
     $result = gorilla_shop_redeem($user_id, $reward_id);
     if ($result['success']) {
-        return rest_ensure_response($result);
+        return new WP_REST_Response($result, 200);
     }
     return new WP_Error('redeem_failed', $result['error'] ?? 'Bilinmeyen hata', array('status' => 400));
 }
@@ -333,12 +342,12 @@ function gorilla_lg_rest_shop_redeem(WP_REST_Request $request) {
 function gorilla_lg_rest_get_streak(WP_REST_Request $request) {
     $user_id = get_current_user_id();
     $streak_data = class_exists('WPGamify_Streak_Manager') ? WPGamify_Streak_Manager::get_streak($user_id) : array();
-    return rest_ensure_response(array(
+    return new WP_REST_Response(array(
         'current_streak' => intval($streak_data['current_streak'] ?? 0),
         'best_streak'    => intval($streak_data['max_streak'] ?? 0),
         'last_login'     => $streak_data['last_activity_date'] ?? null,
         'enabled'        => class_exists('WPGamify_Settings') && (bool) WPGamify_Settings::get('streak_enabled', true),
-    ));
+    ), 200);
 }
 
 // ── /qr ─────────────────────────────────────────────────
@@ -347,10 +356,10 @@ function gorilla_lg_rest_get_qr(WP_REST_Request $request) {
     if (!function_exists('gorilla_qr_get_url')) {
         return new WP_Error('not_available', 'QR sistemi kullanilamiyor.', array('status' => 503));
     }
-    return rest_ensure_response(array(
+    return new WP_REST_Response(array(
         'qr_url'  => gorilla_qr_get_url($user_id),
         'enabled' => get_option('gorilla_lr_qr_enabled') === 'yes',
-    ));
+    ), 200);
 }
 
 // ── /social/share ───────────────────────────────────────
@@ -367,12 +376,12 @@ function gorilla_lg_rest_social_share(WP_REST_Request $request) {
         return new WP_Error('not_available', 'Sosyal paylasim sistemi kullanilamiyor.', array('status' => 503));
     }
     $result = gorilla_social_track_share($user_id, $platform);
-    return rest_ensure_response(array('awarded' => $result));
+    return new WP_REST_Response(array('awarded' => $result), 200);
 }
 
 // ── /settings ───────────────────────────────────────────
 function gorilla_lg_rest_get_settings(WP_REST_Request $request) {
-    return rest_ensure_response(array(
+    return new WP_REST_Response(array(
         'loyalty_enabled'    => get_option('gorilla_lr_enabled_loyalty') === 'yes',
         'xp_enabled'         => defined('WPGAMIFY_VERSION'),
         'badges_enabled'     => get_option('gorilla_lr_badges_enabled') === 'yes',
@@ -381,7 +390,7 @@ function gorilla_lg_rest_get_settings(WP_REST_Request $request) {
         'streak_enabled'     => class_exists('WPGamify_Settings') && (bool) WPGamify_Settings::get('streak_enabled', true),
         'period_months'      => intval(get_option('gorilla_lr_period_months', 6)),
         'version'            => defined('GORILLA_LG_VERSION') ? GORILLA_LG_VERSION : '3.1.0',
-    ));
+    ), 200);
 }
 
 // ── /admin/stats ────────────────────────────────────────
@@ -395,14 +404,14 @@ function gorilla_lg_rest_admin_stats(WP_REST_Request $request) {
 
     $total_users = intval($wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->users}"));
 
-    return rest_ensure_response(array(
+    return new WP_REST_Response(array(
         'xp' => array(
             'total_given' => $total_xp_given,
         ),
         'users' => array(
             'total' => $total_users,
         ),
-    ));
+    ), 200);
 }
 
 // ── /admin/user/{id} ────────────────────────────────────
@@ -424,11 +433,11 @@ function gorilla_lg_rest_admin_get_user(WP_REST_Request $request) {
     $xp = function_exists('gorilla_xp_get_balance') ? gorilla_xp_get_balance($user_id) : 0;
     $level = function_exists('gorilla_xp_calculate_level') ? gorilla_xp_calculate_level($user_id) : null;
 
-    return rest_ensure_response(array(
+    return new WP_REST_Response(array(
         'user' => array(
             'id'           => $user_id,
             'display_name' => $user->display_name,
-            'email'        => $user->user_email,
+            'email'        => substr($user->user_email, 0, 3) . '***@' . substr(strrchr($user->user_email, '@'), 1),
             'registered'   => $user->user_registered,
         ),
         'tier'   => $tier,
@@ -436,7 +445,7 @@ function gorilla_lg_rest_admin_get_user(WP_REST_Request $request) {
         'level'  => $level,
         'streak' => class_exists('WPGamify_Streak_Manager') ? intval(WPGamify_Streak_Manager::get_streak($user_id)['current_streak'] ?? 0) : 0,
         'badges' => function_exists('gorilla_badge_get_user_badges') ? gorilla_badge_get_user_badges($user_id) : array(),
-    ));
+    ), 200);
 }
 
 // ── Route existence check ───────────────────────────────
@@ -454,13 +463,13 @@ function gorilla_lg_rest_get_credit(WP_REST_Request $request) {
     }
     $balance = gorilla_credit_get_balance($user_id);
     $min_order = floatval(get_option('gorilla_lr_credit_min_order', 0));
-    return rest_ensure_response(array(
+    return new WP_REST_Response(array(
         'balance'             => floatval($balance),
         'formatted'           => function_exists('wc_price') ? strip_tags(wc_price($balance)) : $balance,
         'min_order'           => $min_order,
         'min_order_formatted' => function_exists('wc_price') ? strip_tags(wc_price($min_order)) : $min_order,
         'can_use'             => $balance > 0,
-    ));
+    ), 200);
 }
 
 // ── /credit/log ─────────────────────────────────────────
@@ -484,5 +493,5 @@ function gorilla_lg_rest_get_credit_log(WP_REST_Request $request) {
             'expires_at'    => $entry['expires_at'] ?? null,
         );
     }
-    return rest_ensure_response(array('entries' => $formatted, 'count' => count($formatted)));
+    return new WP_REST_Response(array('entries' => $formatted, 'count' => count($formatted)), 200);
 }

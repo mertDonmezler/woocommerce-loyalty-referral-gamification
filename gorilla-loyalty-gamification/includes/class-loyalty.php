@@ -19,9 +19,11 @@ function gorilla_loyalty_get_spending($user_id) {
         $months = intval(get_option('gorilla_lr_period_months', 6));
         $date_from = gmdate('Y-m-d H:i:s', strtotime("-{$months} months"));
 
-        $cache_key = 'gorilla_spending_' . $user_id;
-        $cached = get_transient($cache_key);
-        if ($cached !== false) return floatval($cached);
+        $cache_key = '_gorilla_spending_cache';
+        $cached = get_user_meta($user_id, $cache_key, true);
+        if (is_array($cached) && isset($cached['expires']) && $cached['expires'] > time()) {
+            return floatval($cached['data']);
+        }
 
         $total = 0;
 
@@ -54,7 +56,7 @@ function gorilla_loyalty_get_spending($user_id) {
         }
 
         $result = floatval($total);
-        set_transient($cache_key, $result, 3600);
+        update_user_meta($user_id, $cache_key, array('data' => $result, 'expires' => time() + 3600));
         return $result;
 
     } catch (\Throwable $e) {
@@ -242,7 +244,7 @@ add_action('woocommerce_order_status_completed', function($order_id) {
     $old_tier_key = get_user_meta($user_id, '_gorilla_last_tier', true);
     if (!$old_tier_key) $old_tier_key = 'none';
 
-    delete_transient('gorilla_spending_' . $user_id);
+    delete_user_meta($user_id, '_gorilla_spending_cache');
     delete_transient('gorilla_lr_bar_' . $user_id);
 
     $new_tier = gorilla_loyalty_calculate_tier($user_id);
@@ -270,7 +272,7 @@ add_action('woocommerce_order_status_processing', function($order_id) {
     if (!$order) return;
     $user_id = $order->get_customer_id();
     if ($user_id) {
-        delete_transient('gorilla_spending_' . $user_id);
+        delete_user_meta($user_id, '_gorilla_spending_cache');
     }
 });
 
@@ -569,14 +571,21 @@ function gorilla_spin_get_prizes() {
 
 function gorilla_spin_grant($user_id, $reason = 'level_up') {
     global $wpdb;
-    $wpdb->query($wpdb->prepare(
-        "UPDATE {$wpdb->usermeta} SET meta_value = meta_value + 1 WHERE user_id = %d AND meta_key = '_gorilla_spin_available'",
-        $user_id
-    ));
-    if ($wpdb->rows_affected === 0) {
-        update_user_meta($user_id, '_gorilla_spin_available', 1);
+    $lock_name = "gorilla_spin_{$user_id}";
+    $got_lock = (int) $wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s, 2)', $lock_name));
+    if (!$got_lock) return;
+    try {
+        $wpdb->query($wpdb->prepare(
+            "UPDATE {$wpdb->usermeta} SET meta_value = meta_value + 1 WHERE user_id = %d AND meta_key = '_gorilla_spin_available'",
+            $user_id
+        ));
+        if ($wpdb->rows_affected === 0) {
+            update_user_meta($user_id, '_gorilla_spin_available', 1);
+        }
+        wp_cache_delete($user_id, 'user_meta');
+    } finally {
+        $wpdb->query($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lock_name));
     }
-    wp_cache_delete($user_id, 'user_meta');
 }
 
 function gorilla_spin_execute($user_id) {
@@ -690,11 +699,11 @@ add_action('wp_ajax_gorilla_spin_wheel', function() {
     }
 });
 
-add_action('gorilla_xp_level_up', function($user_id) {
+add_action('gorilla_xp_level_up', function($user_id, $old_level = null, $new_level = null) {
     if (get_option('gorilla_lr_spin_enabled', 'no') === 'yes') {
         gorilla_spin_grant($user_id, 'level_up');
     }
-}, 10, 1);
+}, 10, 3);
 
 // ══════════════════════════════════════════════════════════
 // KILOMETRE TASLARI (F7)
@@ -799,12 +808,20 @@ function gorilla_social_track_share($user_id, $platform) {
     $allowed = array('facebook', 'twitter', 'whatsapp', 'instagram', 'tiktok');
     if (!in_array($platform, $allowed)) return false;
 
-    // Per-platform daily rate limit guard
+    // Per-platform daily rate limit guard — atomic INSERT to prevent race condition
     $share_guard_key = '_gorilla_share_' . $platform . '_' . current_time('Y-m-d');
-    if (get_user_meta($user_id, $share_guard_key, true)) {
-        return false; // Already shared on this platform today
+    global $wpdb;
+    $guard_inserted = $wpdb->query($wpdb->prepare(
+        "INSERT INTO {$wpdb->usermeta} (user_id, meta_key, meta_value)
+         SELECT %d, %s, %s FROM DUAL
+         WHERE NOT EXISTS (SELECT 1 FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = %s)",
+        $user_id, $share_guard_key, current_time('mysql'),
+        $user_id, $share_guard_key
+    ));
+    if (!$guard_inserted) {
+        return false;
     }
-    update_user_meta($user_id, $share_guard_key, current_time('mysql'));
+    wp_cache_delete($user_id, 'user_meta');
 
     $shares = get_user_meta($user_id, '_gorilla_social_shares', true);
     if (!is_array($shares)) $shares = array();
@@ -1110,79 +1127,89 @@ function gorilla_transfer_credit_handler() {
         wp_send_json_error(array('message' => 'Alici bulunamadi veya kendinize transfer yapamazsiniz.'));
     }
 
-    $daily_limit = floatval(get_option('gorilla_lr_transfer_daily_limit', 500));
-    $today_key   = '_gorilla_transfer_total_' . current_time('Y-m-d');
-    $today_total = floatval(get_user_meta($sender_id, $today_key, true));
-
-    if (($today_total + $amount) > $daily_limit) {
-        wp_send_json_error(array('message' => sprintf('Gunluk transfer limitiniz %s. Bugun %s transfer ettiniz.', number_format_i18n($daily_limit), number_format_i18n($today_total))));
+    // Acquire per-user lock to prevent daily limit bypass via concurrent requests
+    global $wpdb;
+    $transfer_lock = "gorilla_transfer_{$sender_id}";
+    $got_lock = (int) $wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s, 3)', $transfer_lock));
+    if (!$got_lock) {
+        wp_send_json_error(array('message' => 'Islem sirada, lutfen tekrar deneyin.'));
     }
 
-    $min_amount = floatval(get_option('gorilla_lr_transfer_min_amount', 10));
-    if ($amount < $min_amount) {
-        wp_send_json_error(array('message' => sprintf('Minimum transfer miktari: %s', number_format_i18n($min_amount))));
-    }
+    try {
+        $daily_limit = floatval(get_option('gorilla_lr_transfer_daily_limit', 500));
+        $today_key   = '_gorilla_transfer_total_' . current_time('Y-m-d');
+        $today_total = floatval(get_user_meta($sender_id, $today_key, true));
 
-    if ($transfer_type === 'credit') {
-        if (!function_exists('gorilla_credit_get_balance') || !function_exists('gorilla_credit_adjust')) {
-            wp_send_json_error(array('message' => 'Kredi sistemi kulanilamiyor.'));
+        if (($today_total + $amount) > $daily_limit) {
+            wp_send_json_error(array('message' => sprintf('Gunluk transfer limitiniz %s. Bugun %s transfer ettiniz.', number_format_i18n($daily_limit), number_format_i18n($today_total))));
         }
 
-        // Atomic credit transfer: check balance + deduct + add in a single transaction
-        global $wpdb;
-        $wpdb->query('START TRANSACTION');
-        try {
-            $sender_balance = floatval($wpdb->get_var($wpdb->prepare(
-                "SELECT meta_value FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = '_gorilla_store_credit' FOR UPDATE",
-                $sender_id
-            )));
-            if ($sender_balance < $amount) {
-                $wpdb->query('ROLLBACK');
-                wp_send_json_error(array('message' => sprintf('Yetersiz bakiye. Mevcut: %s TL', number_format_i18n($sender_balance, 2))));
+        $min_amount = floatval(get_option('gorilla_lr_transfer_min_amount', 10));
+        if ($amount < $min_amount) {
+            wp_send_json_error(array('message' => sprintf('Minimum transfer miktari: %s', number_format_i18n($min_amount))));
+        }
+
+        if ($transfer_type === 'credit') {
+            if (!function_exists('gorilla_credit_get_balance') || !function_exists('gorilla_credit_adjust')) {
+                wp_send_json_error(array('message' => 'Kredi sistemi kulanilamiyor.'));
             }
-            gorilla_credit_adjust($sender_id, -$amount, 'transfer_out', sprintf('Transfer -> %s', $recipient->display_name), $recipient->ID);
-            gorilla_credit_adjust($recipient->ID, $amount, 'transfer_in', sprintf('Transfer <- %s', wp_get_current_user()->display_name), $sender_id);
-            $wpdb->query('COMMIT');
-        } catch (\Throwable $e) {
-            $wpdb->query('ROLLBACK');
-            wp_send_json_error(array('message' => 'Transfer sirasinda hata olustu. Lutfen tekrar deneyin.'));
-        }
-    } elseif ($transfer_type === 'xp') {
-        if (!function_exists('gorilla_xp_get_balance') || !function_exists('gorilla_xp_deduct') || !function_exists('gorilla_xp_add')) {
-            wp_send_json_error(array('message' => 'XP sistemi kulanilamiyor.'));
-        }
 
-        // Atomic XP transfer: check balance + deduct + add in a single transaction
-        global $wpdb;
-        $level_table = $wpdb->prefix . 'gamify_user_levels';
-        $wpdb->query('START TRANSACTION');
-        try {
-            $sender_xp = intval($wpdb->get_var($wpdb->prepare(
-                "SELECT total_xp FROM {$level_table} WHERE user_id = %d FOR UPDATE",
-                $sender_id
-            )));
-            if ($sender_xp < $amount) {
+            // Atomic credit transfer: check balance + deduct + add in a single transaction
+            $wpdb->query('START TRANSACTION');
+            try {
+                $sender_balance = floatval($wpdb->get_var($wpdb->prepare(
+                    "SELECT meta_value FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = '_gorilla_store_credit' FOR UPDATE",
+                    $sender_id
+                )));
+                if ($sender_balance < $amount) {
+                    $wpdb->query('ROLLBACK');
+                    wp_send_json_error(array('message' => sprintf('Yetersiz bakiye. Mevcut: %s TL', number_format_i18n($sender_balance, 2))));
+                }
+                gorilla_credit_adjust($sender_id, -$amount, 'transfer_out', sprintf('Transfer -> %s', $recipient->display_name), $recipient->ID);
+                gorilla_credit_adjust($recipient->ID, $amount, 'transfer_in', sprintf('Transfer <- %s', wp_get_current_user()->display_name), $sender_id);
+                $wpdb->query('COMMIT');
+            } catch (\Throwable $e) {
                 $wpdb->query('ROLLBACK');
-                wp_send_json_error(array('message' => sprintf('Yetersiz XP. Mevcut: %s', number_format_i18n($sender_xp))));
+                wp_send_json_error(array('message' => 'Transfer sirasinda hata olustu. Lutfen tekrar deneyin.'));
             }
-            gorilla_xp_deduct($sender_id, intval($amount), sprintf('Transfer -> %s', $recipient->display_name));
-            gorilla_xp_add($recipient->ID, intval($amount), sprintf('Transfer <- %s', wp_get_current_user()->display_name));
-            $wpdb->query('COMMIT');
-        } catch (\Throwable $e) {
-            $wpdb->query('ROLLBACK');
-            wp_send_json_error(array('message' => 'XP transferi sirasinda hata olustu. Lutfen tekrar deneyin.'));
+        } elseif ($transfer_type === 'xp') {
+            if (!function_exists('gorilla_xp_get_balance') || !function_exists('gorilla_xp_deduct') || !function_exists('gorilla_xp_add')) {
+                wp_send_json_error(array('message' => 'XP sistemi kulanilamiyor.'));
+            }
+
+            // Atomic XP transfer: check balance + deduct + add in a single transaction
+            $level_table = $wpdb->prefix . 'gamify_user_levels';
+            $wpdb->query('START TRANSACTION');
+            try {
+                $sender_xp = intval($wpdb->get_var($wpdb->prepare(
+                    "SELECT total_xp FROM {$level_table} WHERE user_id = %d FOR UPDATE",
+                    $sender_id
+                )));
+                if ($sender_xp < $amount) {
+                    $wpdb->query('ROLLBACK');
+                    wp_send_json_error(array('message' => sprintf('Yetersiz XP. Mevcut: %s', number_format_i18n($sender_xp))));
+                }
+                gorilla_xp_deduct($sender_id, intval($amount), sprintf('Transfer -> %s', $recipient->display_name));
+                gorilla_xp_add($recipient->ID, intval($amount), sprintf('Transfer <- %s', wp_get_current_user()->display_name));
+                $wpdb->query('COMMIT');
+            } catch (\Throwable $e) {
+                $wpdb->query('ROLLBACK');
+                wp_send_json_error(array('message' => 'XP transferi sirasinda hata olustu. Lutfen tekrar deneyin.'));
+            }
+        } else {
+            wp_send_json_error(array('message' => 'Gecersiz transfer tipi.'));
         }
-    } else {
-        wp_send_json_error(array('message' => 'Gecersiz transfer tipi.'));
+
+        update_user_meta($sender_id, $today_key, $today_total + $amount);
+
+        gorilla_log_transfer($sender_id, $recipient->ID, $amount, $transfer_type);
+
+        wp_send_json_success(array(
+            'message' => sprintf('%s basariyla %s\'e transfer edildi!', number_format_i18n($amount) . ($transfer_type === 'credit' ? ' TL' : ' XP'), esc_html($recipient->display_name)),
+        ));
+    } finally {
+        $wpdb->query($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $transfer_lock));
     }
-
-    update_user_meta($sender_id, $today_key, $today_total + $amount);
-
-    gorilla_log_transfer($sender_id, $recipient->ID, $amount, $transfer_type);
-
-    wp_send_json_success(array(
-        'message' => sprintf('%s basariyla %s\'e transfer edildi!', number_format_i18n($amount) . ($transfer_type === 'credit' ? ' TL' : ' XP'), esc_html($recipient->display_name)),
-    ));
 }
 
 function gorilla_log_transfer($sender_id, $recipient_id, $amount, $type) {

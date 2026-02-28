@@ -44,7 +44,8 @@ class WPGamify_XP_Expiry {
              AND amount > 0
              AND source != 'xp_expired'
              GROUP BY user_id
-             HAVING expired_xp > 0",
+             HAVING expired_xp > 0
+             LIMIT 500",
             $cutoff
         ) );
 
@@ -120,7 +121,8 @@ class WPGamify_XP_Expiry {
              AND amount > 0
              AND source != 'xp_expired'
              GROUP BY user_id
-             HAVING expiring_xp > 0",
+             HAVING expiring_xp > 0
+             LIMIT 500",
             $warn_cutoff,
             $actual_cutoff
         ) );
