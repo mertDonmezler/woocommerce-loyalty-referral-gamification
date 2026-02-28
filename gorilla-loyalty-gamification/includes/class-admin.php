@@ -83,7 +83,7 @@ function gorilla_admin_dashboard_page() {
 
     // XP istatistikleri
     $xp_stats = function_exists('gorilla_xp_get_admin_stats') ? gorilla_xp_get_admin_stats() : array();
-    $xp_enabled = get_option('gorilla_lr_enabled_xp', 'yes') === 'yes';
+    $xp_enabled = defined('WPGAMIFY_VERSION');
     ?>
     <div class="wrap">
         <h1 style="display:flex; align-items:center; gap:10px;">
@@ -622,7 +622,7 @@ add_action('woocommerce_admin_order_data_after_billing_address', function($order
     }
 
     // XP/Level bilgisi
-    if (function_exists('gorilla_xp_get_balance') && function_exists('gorilla_xp_calculate_level') && get_option('gorilla_lr_enabled_xp', 'yes') === 'yes') {
+    if (function_exists('gorilla_xp_get_balance') && function_exists('gorilla_xp_calculate_level') && defined('WPGAMIFY_VERSION')) {
         $xp = gorilla_xp_get_balance($user_id);
         if ($xp > 0) {
             $level = gorilla_xp_calculate_level($user_id);

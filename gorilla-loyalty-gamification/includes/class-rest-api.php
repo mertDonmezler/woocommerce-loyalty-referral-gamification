@@ -169,7 +169,7 @@ function gorilla_lg_rest_get_me(WP_REST_Request $request) {
     $next = function_exists('gorilla_loyalty_next_tier') ? gorilla_loyalty_next_tier($user_id) : null;
 
     $xp_info = null;
-    if (function_exists('gorilla_xp_calculate_level') && get_option('gorilla_lr_enabled_xp') === 'yes') {
+    if (function_exists('gorilla_xp_calculate_level') && defined('WPGAMIFY_VERSION')) {
         $xp_info = array(
             'balance' => function_exists('gorilla_xp_get_balance') ? gorilla_xp_get_balance($user_id) : 0,
             'level'   => gorilla_xp_calculate_level($user_id),
@@ -183,11 +183,11 @@ function gorilla_lg_rest_get_me(WP_REST_Request $request) {
         'next_tier'       => $next,
         'xp'              => $xp_info,
         'badges'          => (function_exists('gorilla_badge_get_user_badges') && get_option('gorilla_lr_badges_enabled') === 'yes') ? gorilla_badge_get_user_badges($user_id) : null,
-        'streak'          => (get_option('gorilla_lr_streak_enabled') === 'yes' && class_exists('WPGamify_Streak_Manager')) ? intval(WPGamify_Streak_Manager::get_streak($user_id)['current_streak'] ?? 0) : null,
+        'streak'          => (class_exists('WPGamify_Settings') && WPGamify_Settings::get('streak_enabled', true) && class_exists('WPGamify_Streak_Manager')) ? intval(WPGamify_Streak_Manager::get_streak($user_id)['current_streak'] ?? 0) : null,
         'spins_available' => (get_option('gorilla_lr_spin_enabled') === 'yes') ? intval(get_user_meta($user_id, '_gorilla_spin_available', true)) : null,
         'programs'        => array(
             'loyalty_enabled' => get_option('gorilla_lr_enabled_loyalty') === 'yes',
-            'xp_enabled'      => get_option('gorilla_lr_enabled_xp') === 'yes',
+            'xp_enabled'      => defined('WPGAMIFY_VERSION'),
         ),
     ));
 }
@@ -337,7 +337,7 @@ function gorilla_lg_rest_get_streak(WP_REST_Request $request) {
         'current_streak' => intval($streak_data['current_streak'] ?? 0),
         'best_streak'    => intval($streak_data['max_streak'] ?? 0),
         'last_login'     => $streak_data['last_activity_date'] ?? null,
-        'enabled'        => get_option('gorilla_lr_streak_enabled') === 'yes',
+        'enabled'        => class_exists('WPGamify_Settings') && (bool) WPGamify_Settings::get('streak_enabled', true),
     ));
 }
 
@@ -374,11 +374,11 @@ function gorilla_lg_rest_social_share(WP_REST_Request $request) {
 function gorilla_lg_rest_get_settings(WP_REST_Request $request) {
     return rest_ensure_response(array(
         'loyalty_enabled'    => get_option('gorilla_lr_enabled_loyalty') === 'yes',
-        'xp_enabled'         => get_option('gorilla_lr_enabled_xp') === 'yes',
+        'xp_enabled'         => defined('WPGAMIFY_VERSION'),
         'badges_enabled'     => get_option('gorilla_lr_badges_enabled') === 'yes',
         'leaderboard_enabled'=> get_option('gorilla_lr_leaderboard_enabled') === 'yes',
         'spin_enabled'       => get_option('gorilla_lr_spin_enabled') === 'yes',
-        'streak_enabled'     => get_option('gorilla_lr_streak_enabled') === 'yes',
+        'streak_enabled'     => class_exists('WPGamify_Settings') && (bool) WPGamify_Settings::get('streak_enabled', true),
         'period_months'      => intval(get_option('gorilla_lr_period_months', 6)),
         'version'            => defined('GORILLA_LG_VERSION') ? GORILLA_LG_VERSION : '3.1.0',
     ));

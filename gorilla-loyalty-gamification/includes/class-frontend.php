@@ -431,18 +431,18 @@ add_action('woocommerce_account_gorilla-loyalty_endpoint', function() {
 
             <?php
             // ═══ XP & LEVEL BÖLÜMÜ ═══
-            if (get_option('gorilla_lr_enabled_xp', 'yes') === 'yes' && function_exists('gorilla_xp_calculate_level')):
+            if (defined('WPGAMIFY_VERSION') && function_exists('gorilla_xp_calculate_level')):
                 $xp_balance = gorilla_xp_get_balance($user_id);
                 $current_level = gorilla_xp_calculate_level($user_id);
                 $next_level = gorilla_xp_get_next_level($user_id);
                 $xp_log = gorilla_xp_get_log($user_id, 5);
                 $levels = gorilla_xp_get_levels();
 
-                // XP ayarları
-                $xp_order_rate = intval(get_option('gorilla_lr_xp_per_order_rate', 10));
-                $xp_review = intval(get_option('gorilla_lr_xp_review', 25));
-                $xp_referral = intval(get_option('gorilla_lr_xp_referral', 50));
-                $xp_affiliate = intval(get_option('gorilla_lr_xp_affiliate', 30));
+                // XP ayarları (WP Gamify settings'ten oku)
+                $xp_order_rate = class_exists('WPGamify_Settings') ? intval(WPGamify_Settings::get('xp_order_per_currency', 1)) : 1;
+                $xp_review = class_exists('WPGamify_Settings') ? intval(WPGamify_Settings::get('xp_review_amount', 15)) : 15;
+                $xp_referral = class_exists('WPGamify_Settings') ? intval(WPGamify_Settings::get('xp_referral_amount', 50)) : 50;
+                $xp_affiliate = class_exists('WPGamify_Settings') ? intval(WPGamify_Settings::get('xp_affiliate_amount', 30)) : 30;
 
                 $level_color = esc_attr($current_level['color'] ?? '#a3e635');
             ?>
@@ -616,7 +616,7 @@ add_action('woocommerce_account_gorilla-loyalty_endpoint', function() {
 
             <?php
             // ═══ LOGIN STREAK ═══
-            if (get_option('gorilla_lr_streak_enabled', 'no') === 'yes'):
+            if (class_exists('WPGamify_Settings') && WPGamify_Settings::get('streak_enabled', true)):
                 $streak_data = class_exists('WPGamify_Streak_Manager') ? WPGamify_Streak_Manager::get_streak($user_id) : array();
                 $login_streak = intval($streak_data['current_streak'] ?? 0);
                 $login_streak_best = intval($streak_data['max_streak'] ?? 0);
