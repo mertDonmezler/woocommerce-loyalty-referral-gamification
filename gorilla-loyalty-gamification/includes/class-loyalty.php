@@ -121,7 +121,28 @@ function gorilla_loyalty_calculate_tier($user_id) {
 
         $prev = get_user_meta($user_id, '_gorilla_lr_tier_key', true);
         if ($prev !== $current_key) {
-            update_user_meta($user_id, '_gorilla_lr_tier_key', $current_key);
+            // Detect downgrade: start grace period
+            if ($grace_days > 0 && $prev && $prev !== 'none' && isset($tiers[$prev])) {
+                $tier_keys = array_keys($tiers);
+                $prev_index = array_search($prev, $tier_keys, true);
+                $new_index = ($current_key === 'none') ? -1 : array_search($current_key, $tier_keys, true);
+                if ($new_index < $prev_index) {
+                    // Downgrade detected - set grace period
+                    $grace_until = gmdate('Y-m-d H:i:s', strtotime("+{$grace_days} days"));
+                    update_user_meta($user_id, '_gorilla_tier_grace_until', $grace_until);
+                    update_user_meta($user_id, '_gorilla_last_tier', $prev);
+                    // Keep old tier during grace
+                    $current_key = $prev;
+                    $current_tier = $tiers[$prev];
+                } else {
+                    // Upgrade - clear grace period
+                    delete_user_meta($user_id, '_gorilla_tier_grace_until');
+                    update_user_meta($user_id, '_gorilla_last_tier', $current_key);
+                    update_user_meta($user_id, '_gorilla_lr_tier_key', $current_key);
+                }
+            } else {
+                update_user_meta($user_id, '_gorilla_lr_tier_key', $current_key);
+            }
         }
 
         $result = array_merge($current_tier, array(
@@ -343,6 +364,12 @@ function gorilla_badge_tier_meta($tier_key) {
 function gorilla_badge_award($user_id, $badge_id, $tier_key = '') {
     if (get_option('gorilla_lr_badges_enabled', 'no') !== 'yes') return false;
 
+    global $wpdb;
+    $lock_name = "gorilla_badge_{$user_id}";
+    $got_lock = (int) $wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s, 2)', $lock_name));
+    if (!$got_lock) return false;
+    try {
+
     $definitions = gorilla_badge_get_definitions();
     if (!isset($definitions[$badge_id])) return false;
 
@@ -370,6 +397,10 @@ function gorilla_badge_award($user_id, $badge_id, $tier_key = '') {
     update_user_meta($user_id, '_gorilla_badges', $badges);
     do_action('gorilla_badge_earned', $user_id, $badge_id, $tier_key);
     return true;
+
+    } finally {
+        $wpdb->query($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lock_name));
+    }
 }
 
 function gorilla_badge_get_user_badges($user_id) {

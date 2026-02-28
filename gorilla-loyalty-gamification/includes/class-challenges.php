@@ -236,10 +236,21 @@ function gorilla_challenges_on_order_complete($order_id) {
 
 add_action('comment_post', 'gorilla_challenges_on_review', 20, 3);
 function gorilla_challenges_on_review($comment_id, $comment_approved, $commentdata) {
+    if ($comment_approved !== 1 && $comment_approved !== '1') return;
+
     $comment = get_comment($comment_id);
     if (!$comment || !$comment->user_id) return;
 
     if (get_comment_meta($comment_id, 'rating', true) === '') return;
+
+    gorilla_challenges_increment(intval($comment->user_id), 'reviews', 1);
+}
+
+add_action('comment_unapproved_to_approved', 'gorilla_challenges_on_review_approved');
+function gorilla_challenges_on_review_approved($comment) {
+    if (!$comment || !$comment->user_id) return;
+
+    if (get_comment_meta($comment->comment_ID, 'rating', true) === '') return;
 
     gorilla_challenges_increment(intval($comment->user_id), 'reviews', 1);
 }

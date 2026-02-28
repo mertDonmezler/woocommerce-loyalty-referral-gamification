@@ -224,18 +224,25 @@ class WPGamify_Order_Hooks {
      * @return void
      */
     private function maybe_award_first_order_bonus( int $user_id, int $order_id ): void {
-        // Daha once verilmisse atla.
-        $already_given = get_user_meta( $user_id, self::META_FIRST_ORDER, true );
-
-        if ( $already_given !== '' && $already_given !== false ) {
-            return;
-        }
-
         $bonus_xp = (int) WPGamify_Settings::get( 'xp_first_order_bonus', 0 );
 
         if ( $bonus_xp <= 0 ) {
             return;
         }
+
+        // Atomic guard — prevent double first-order bonus via INSERT ... WHERE NOT EXISTS.
+        global $wpdb;
+        $guard_inserted = $wpdb->query( $wpdb->prepare(
+            "INSERT INTO {$wpdb->usermeta} (user_id, meta_key, meta_value)
+             SELECT %d, %s, %s FROM DUAL
+             WHERE NOT EXISTS (SELECT 1 FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = %s)",
+            $user_id, self::META_FIRST_ORDER, wp_date( 'Y-m-d H:i:s' ),
+            $user_id, self::META_FIRST_ORDER
+        ) );
+        if ( ! $guard_inserted ) {
+            return;
+        }
+        wp_cache_delete( $user_id, 'user_meta' );
 
         WPGamify_XP_Engine::award(
             $user_id,
@@ -244,7 +251,5 @@ class WPGamify_Order_Hooks {
             (string) $order_id,
             'Ilk siparis bonusu'
         );
-
-        update_user_meta( $user_id, self::META_FIRST_ORDER, wp_date( 'Y-m-d H:i:s' ) );
     }
 }

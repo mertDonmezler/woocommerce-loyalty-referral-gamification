@@ -142,6 +142,26 @@ class WPGamify_XP_Engine {
         }
 
         global $wpdb;
+
+        // User-level lock to serialize concurrent XP deductions.
+        $lock_name = "wpgamify_xp_{$user_id}";
+        $got_lock  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 3)', $lock_name ) );
+        if ( $got_lock !== 1 ) {
+            return false;
+        }
+
+        try {
+            return self::deduct_locked( $user_id, $amount, $source, $source_id, $note );
+        } finally {
+            $wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
+        }
+    }
+
+    /**
+     * Internal: insert deduction inside user lock.
+     */
+    private static function deduct_locked( int $user_id, int $amount, string $source, string $source_id, string $note ): bool|int {
+        global $wpdb;
         $now = current_time( 'mysql' );
 
         $wpdb->query( 'START TRANSACTION' );

@@ -27,8 +27,11 @@ foreach ($active_plugins as $p) {
     }
 }
 
-// XP log table: kept for potential rollback. WP Gamify owns XP data now.
-// gorilla_xp_log is legacy and will be cleaned up manually if migration confirmed.
+// Drop legacy XP log table if migration to WP Gamify is confirmed.
+if (get_option('_gorilla_migrated_to_gamify')) {
+    $xp_table = $wpdb->prefix . 'gorilla_xp_log';
+    $wpdb->query("DROP TABLE IF EXISTS {$xp_table}");
+}
 
 // Drop credit_log table only if RA plugin is not active.
 // RA uses this table for affiliate commission logging.

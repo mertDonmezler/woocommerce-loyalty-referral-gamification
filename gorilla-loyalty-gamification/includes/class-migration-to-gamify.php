@@ -118,9 +118,12 @@ class Gorilla_Migration_To_Gamify {
         $old_table = $wpdb->prefix . 'gorilla_xp_log';
         $new_table = $wpdb->prefix . 'gamify_xp_transactions';
 
-        // Check if new table already has data (avoid duplicate migration).
-        $existing = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$new_table}");
-        if ($existing > 0) {
+        // Check if XP log migration already ran (not just if table has data from WP Gamify standalone use).
+        $migration_marker = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$new_table} WHERE source = %s LIMIT 1",
+            '_gorilla_migrated'
+        ));
+        if ($migration_marker > 0) {
             return;
         }
 
@@ -153,6 +156,17 @@ class Gorilla_Migration_To_Gamify {
 
             $offset += $batch_size;
         } while (count($rows) === $batch_size);
+
+        // Mark migration complete for idempotency
+        $wpdb->insert($new_table, array(
+            'user_id'       => 0,
+            'amount'        => 0,
+            'source'        => '_gorilla_migrated',
+            'source_id'     => '',
+            'campaign_mult' => 1.00,
+            'note'          => 'XP log migration marker',
+            'created_at'    => current_time('mysql'),
+        ), array('%d', '%d', '%s', '%s', '%f', '%s', '%s'));
     }
 
     /**

@@ -11,6 +11,11 @@ if (!defined('ABSPATH')) exit;
 
 // ── Notification Helpers ─────────────────────────────────
 function gorilla_notification_add($user_id, $type, $message, $icon = '') {
+    global $wpdb;
+    $lock_name = "gorilla_notify_{$user_id}";
+    $got_lock = (int) $wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s, 2)', $lock_name));
+    if (!$got_lock) return;
+    try {
     $notifications = get_user_meta($user_id, '_gorilla_notifications', true);
     if (!is_array($notifications)) $notifications = array();
 
@@ -26,6 +31,9 @@ function gorilla_notification_add($user_id, $type, $message, $icon = '') {
     // Keep max 50 notifications
     $notifications = array_slice($notifications, 0, 50);
     update_user_meta($user_id, '_gorilla_notifications', $notifications);
+    } finally {
+        $wpdb->query($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lock_name));
+    }
 }
 
 function gorilla_notification_icon($type) {

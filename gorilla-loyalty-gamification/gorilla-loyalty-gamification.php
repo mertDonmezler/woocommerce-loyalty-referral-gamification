@@ -203,15 +203,6 @@ register_activation_hook(__FILE__, function() {
         'gorilla_lr_social_share_xp'        => 10,
         'gorilla_lr_qr_enabled'             => 'yes',
         'gorilla_lr_qr_method'              => 'quickchart',
-        'gorilla_lr_levels'                 => array(
-            'level_1' => array('label' => 'Caylak',      'min_xp' => 0,    'emoji' => "\xF0\x9F\x8C\xB1", 'color' => '#a3e635'),
-            'level_2' => array('label' => 'Kesifci',     'min_xp' => 50,   'emoji' => "\xF0\x9F\x94\x8D", 'color' => '#22d3ee'),
-            'level_3' => array('label' => 'Alisverisci', 'min_xp' => 150,  'emoji' => "\xF0\x9F\x9B\x92", 'color' => '#60a5fa'),
-            'level_4' => array('label' => 'Sadik',       'min_xp' => 400,  'emoji' => "\xE2\xAD\x90",     'color' => '#facc15'),
-            'level_5' => array('label' => 'Uzman',       'min_xp' => 800,  'emoji' => "\xF0\x9F\x8F\x85", 'color' => '#f97316'),
-            'level_6' => array('label' => 'VIP',         'min_xp' => 1500, 'emoji' => "\xF0\x9F\x92\x8E", 'color' => '#a855f7'),
-            'level_7' => array('label' => 'Efsane',      'min_xp' => 3000, 'emoji' => "\xF0\x9F\x91\x91", 'color' => '#fbbf24'),
-        ),
         'gorilla_lr_challenges_enabled'     => 'no',
         'gorilla_lr_credit_min_order'        => 0,
         'gorilla_lr_credit_expiry_days'      => 0,
@@ -779,6 +770,8 @@ add_action('gorilla_referral_approved', function($user_id, $ref_id) {
 // Affiliate sale -> WP Gamify XP (amount from WP Gamify settings)
 add_action('gorilla_affiliate_sale', function($user_id, $order_id) {
     if (!class_exists('WPGamify_Settings') || !function_exists('gorilla_xp_add')) return;
+    // Prevent double XP if both primary and recurring commission fire for same order.
+    if (function_exists('gorilla_xp_has_been_awarded') && gorilla_xp_has_been_awarded($user_id, 'affiliate', $order_id)) return;
     $xp = (int) WPGamify_Settings::get('xp_affiliate_amount', 30);
     if ($xp > 0) gorilla_xp_add($user_id, $xp, sprintf('Affiliate satis #%d', $order_id), 'affiliate', $order_id);
 }, 10, 2);

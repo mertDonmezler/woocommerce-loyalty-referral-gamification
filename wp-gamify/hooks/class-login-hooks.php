@@ -71,6 +71,12 @@ class WPGamify_Login_Hooks {
         // 1. Streak kaydini guncelle (also runs birthday/anniversary checks internally).
         WPGamify_Streak_Manager::record_activity( $user_id );
 
+        // Store IP for anti-abuse detection.
+        $ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ?? '' ) );
+        if ( $ip && filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+            update_user_meta( $user_id, 'wpgamify_last_ip', $ip );
+        }
+
         // 2. Gunluk giris XP odul
         $this->maybe_award_login_xp( $user_id );
     }
@@ -93,6 +99,12 @@ class WPGamify_Login_Hooks {
 
         // Baslangic satirlarini olustur
         $this->initialize_user_records( $user_id );
+
+        // Store IP for anti-abuse detection.
+        $ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ?? '' ) );
+        if ( $ip && filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+            update_user_meta( $user_id, 'wpgamify_last_ip', $ip );
+        }
     }
 
     /**
@@ -158,6 +170,20 @@ class WPGamify_Login_Hooks {
         if ( $amount <= 0 ) {
             return;
         }
+
+        // Atomic guard — prevent double registration XP.
+        global $wpdb;
+        $guard_inserted = $wpdb->query( $wpdb->prepare(
+            "INSERT INTO {$wpdb->usermeta} (user_id, meta_key, meta_value)
+             SELECT %d, %s, '1' FROM DUAL
+             WHERE NOT EXISTS (SELECT 1 FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = %s)",
+            $user_id, '_wpgamify_registration_xp_awarded',
+            $user_id, '_wpgamify_registration_xp_awarded'
+        ) );
+        if ( ! $guard_inserted ) {
+            return;
+        }
+        wp_cache_delete( $user_id, 'user_meta' );
 
         WPGamify_XP_Engine::award(
             $user_id,

@@ -48,11 +48,6 @@ class WPGamify_Profile_Hooks {
         }
         $processed[ $user_id ] = true;
 
-        // One-time guard via user meta.
-        if ( get_user_meta( $user_id, '_wpgamify_profile_xp_awarded', true ) ) {
-            return;
-        }
-
         // Check profile completeness.
         $first_name = get_user_meta( $user_id, 'first_name', true );
         $last_name  = get_user_meta( $user_id, 'last_name', true );
@@ -72,7 +67,20 @@ class WPGamify_Profile_Hooks {
             return;
         }
 
+        // Atomic guard — prevent double profile XP via INSERT ... WHERE NOT EXISTS.
+        global $wpdb;
+        $guard_inserted = $wpdb->query( $wpdb->prepare(
+            "INSERT INTO {$wpdb->usermeta} (user_id, meta_key, meta_value)
+             SELECT %d, %s, '1' FROM DUAL
+             WHERE NOT EXISTS (SELECT 1 FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = %s)",
+            $user_id, '_wpgamify_profile_xp_awarded',
+            $user_id, '_wpgamify_profile_xp_awarded'
+        ) );
+        if ( ! $guard_inserted ) {
+            return;
+        }
+        wp_cache_delete( $user_id, 'user_meta' );
+
         WPGamify_XP_Engine::award( $user_id, $xp, 'profile', (string) $user_id, 'Profil tamamlama bonusu' );
-        update_user_meta( $user_id, '_wpgamify_profile_xp_awarded', '1' );
     }
 }

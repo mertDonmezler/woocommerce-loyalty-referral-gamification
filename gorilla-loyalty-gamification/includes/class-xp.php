@@ -77,11 +77,16 @@ function gorilla_xp_calculate_level($user_id) {
         'key'    => 'level_' . $info['level'],
         'number' => $info['level'],
         'label'  => $info['name'],
-        'emoji'  => '',
+        'emoji'  => gorilla_xp_level_emoji($info['level']),
         'color'  => $info['color'] ?? '#6366f1',
         'min_xp' => 0,
         'xp'     => $info['total_xp'],
     );
+}
+
+function gorilla_xp_level_emoji($level_number) {
+    $emojis = array(1 => "\xF0\x9F\x8C\xB1", 2 => "\xF0\x9F\x8C\xBF", 3 => "\xE2\xAD\x90", 4 => "\xF0\x9F\x94\xA5", 5 => "\xF0\x9F\x92\x8E", 6 => "\xF0\x9F\x91\x91", 7 => "\xF0\x9F\x8F\x86", 8 => "\xF0\x9F\x8C\x9F");
+    return $emojis[$level_number] ?? "\xE2\xAD\x90";
 }
 
 /**
@@ -98,7 +103,7 @@ function gorilla_xp_calculate_level_from_xp($xp) {
         'key'    => 'level_' . $level_num,
         'number' => $level_num,
         'label'  => $config['name'] ?? 'Level ' . $level_num,
-        'emoji'  => '',
+        'emoji'  => gorilla_xp_level_emoji($level_num),
         'color'  => $config['color_hex'] ?? '#6366f1',
         'min_xp' => (int) ($config['xp_required'] ?? 0),
     );
@@ -115,7 +120,7 @@ function gorilla_xp_get_next_level($user_id) {
         'key'       => 'level_' . $progress['next_level']['level_number'],
         'number'    => (int) $progress['next_level']['level_number'],
         'label'     => $progress['next_level']['name'] ?? '',
-        'emoji'     => '',
+        'emoji'     => gorilla_xp_level_emoji((int) $progress['next_level']['level_number']),
         'color'     => $progress['next_level']['color_hex'] ?? '#999',
         'min_xp'    => (int) $progress['next_level']['xp_required'],
         'remaining' => $progress['xp_needed'],
@@ -154,7 +159,7 @@ function gorilla_xp_get_levels($force_refresh = false) {
         $result['level_' . $l['level_number']] = array(
             'label'  => $l['name'],
             'min_xp' => (int) $l['xp_required'],
-            'emoji'  => '',
+            'emoji'  => gorilla_xp_level_emoji((int) $l['level_number']),
             'color'  => $l['color_hex'] ?? '#6366f1',
         );
     }
@@ -242,8 +247,13 @@ function gorilla_xp_check_milestones($user_id) {
         ));
         if (!$m_marked) continue;
 
-        $completed[] = $mid;
-        update_user_meta($user_id, '_gorilla_milestones', $completed);
+        // Re-read to avoid lost-update from concurrent completions
+        $completed = get_user_meta($user_id, '_gorilla_milestones', true);
+        if (!is_array($completed)) $completed = array();
+        if (!in_array($mid, $completed)) {
+            $completed[] = $mid;
+            update_user_meta($user_id, '_gorilla_milestones', $completed);
+        }
         $xp_reward = intval($m['xp_reward'] ?? 0);
         if ($xp_reward > 0) gorilla_xp_add($user_id, $xp_reward, sprintf('Hedef tamamlandi: %s', $m['label'] ?? ''), 'milestone', crc32($mid));
         $credit_reward = floatval($m['credit_reward'] ?? 0);
