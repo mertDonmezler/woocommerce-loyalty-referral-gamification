@@ -135,6 +135,19 @@ class WPGamify_Settings {
             // Genel
             'currency_label'         => 'XP',
             'keep_data_on_uninstall' => false,
+
+            // Profile Completion
+            'xp_profile_enabled'  => true,
+            'xp_profile_amount'   => 20,
+
+            // XP Expiry
+            'xp_expiry_enabled'   => false,
+            'xp_expiry_months'    => 12,
+            'xp_expiry_warn_days' => 14,
+
+            // Referral/Affiliate (Gorilla integration)
+            'xp_referral_amount'  => 50,
+            'xp_affiliate_amount' => 30,
         ];
     }
 

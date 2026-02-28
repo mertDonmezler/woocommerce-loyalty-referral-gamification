@@ -3,7 +3,7 @@
  * Plugin Name: Gorilla Loyalty & Gamification
  * Plugin URI: https://www.gorillacustomcards.com
  * Description: XP/level, tier, badges, spin wheel, challenges, leaderboard, milestones, social share, QR, points shop, churn prediction, smart coupon, VIP early access gamification sistemi.
- * Version: 1.2.0
+ * Version: 2.0.0
  * Author: Mert Donmezler
  * Author URI: https://www.gorillacustomcards.com
  * Text Domain: gorilla-loyalty
@@ -19,7 +19,7 @@
 
 if (!defined('ABSPATH')) exit;
 
-define('GORILLA_LG_VERSION', '1.2.0');
+define('GORILLA_LG_VERSION', '2.0.0');
 define('GORILLA_LG_FILE', __FILE__);
 define('GORILLA_LG_PATH', plugin_dir_path(__FILE__));
 define('GORILLA_LG_URL', plugin_dir_url(__FILE__));
@@ -27,11 +27,18 @@ define('GORILLA_LG_BASENAME', plugin_basename(__FILE__));
 
 // ── Core Dependency Check ────────────────────────────────
 function gorilla_lg_check_dependencies() {
+    $missing = array();
     if (!class_exists('WooCommerce')) {
-        add_action('admin_notices', function() {
+        $missing[] = 'WooCommerce';
+    }
+    if (!defined('WPGAMIFY_VERSION')) {
+        $missing[] = 'WP Gamify';
+    }
+    if (!empty($missing)) {
+        add_action('admin_notices', function() use ($missing) {
             echo '<div class="notice notice-error"><p>';
             echo '<strong>Gorilla Loyalty & Gamification:</strong> ';
-            echo sprintf('Bu eklenti <strong>%s</strong> gerektirir. Lutfen kurup etkinlestirin.', 'WooCommerce');
+            echo sprintf('Bu eklenti <strong>%s</strong> gerektirir. Lutfen kurup etkinlestirin.', implode(', ', $missing));
             echo '</p></div>';
         });
         return false;
@@ -122,34 +129,13 @@ if (defined('WP_CLI') && WP_CLI) {
 
 // ── Activation ───────────────────────────────────────────
 register_activation_hook(__FILE__, function() {
-    // XP log table
+    // XP log table: Legacy - kept for migration to WP Gamify.
+    // All new XP data goes to gamify_xp_transactions (WP Gamify).
+    // This table is only created/maintained for backward compat during migration.
     global $wpdb;
     $charset = $wpdb->get_charset_collate();
-    $xp_table = $wpdb->prefix . 'gorilla_xp_log';
-
-    $xp_sql = "CREATE TABLE IF NOT EXISTS {$xp_table} (
-        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-        user_id BIGINT(20) UNSIGNED NOT NULL,
-        amount INT NOT NULL,
-        balance_after INT NOT NULL DEFAULT 0,
-        reason VARCHAR(255) NOT NULL DEFAULT '',
-        reference_type VARCHAR(20) DEFAULT NULL,
-        reference_id BIGINT(20) UNSIGNED DEFAULT NULL,
-        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (id),
-        KEY user_id (user_id),
-        KEY reference_type (reference_type),
-        KEY created_at (created_at)
-    ) {$charset};";
 
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-    dbDelta($xp_sql);
-
-    // Unique index for duplicate XP prevention
-    $index_exists = $wpdb->get_var("SHOW INDEX FROM {$xp_table} WHERE Key_name = 'unique_user_ref'");
-    if (!$index_exists) {
-        $wpdb->query("ALTER TABLE {$xp_table} ADD UNIQUE KEY unique_user_ref (user_id, reference_type, reference_id)");
-    }
 
     // Credit log table
     $credit_table = $wpdb->prefix . 'gorilla_credit_log';
@@ -800,19 +786,77 @@ if (!function_exists('gorilla_lr_get_user_tier')) {
 }
 
 // ── Cross-Plugin Hook Listeners ──────────────────────────
-// Listen for referral approval -> award XP
+// Referral approval -> WP Gamify XP (amount from WP Gamify settings)
 add_action('gorilla_referral_approved', function($user_id, $ref_id) {
-    if (function_exists('gorilla_xp_on_referral_approved')) {
-        gorilla_xp_on_referral_approved($user_id, $ref_id);
-    }
+    if (!class_exists('WPGamify_Settings') || !function_exists('gorilla_xp_add')) return;
+    $xp = (int) WPGamify_Settings::get('xp_referral_amount', 50);
+    if ($xp > 0) gorilla_xp_add($user_id, $xp, 'Video referans onayi', 'referral', $ref_id);
 }, 10, 2);
 
-// Listen for affiliate sale -> award XP
+// Affiliate sale -> WP Gamify XP (amount from WP Gamify settings)
 add_action('gorilla_affiliate_sale', function($user_id, $order_id) {
-    if (function_exists('gorilla_xp_on_affiliate_sale')) {
-        gorilla_xp_on_affiliate_sale($user_id, $order_id);
-    }
+    if (!class_exists('WPGamify_Settings') || !function_exists('gorilla_xp_add')) return;
+    $xp = (int) WPGamify_Settings::get('xp_affiliate_amount', 30);
+    if ($xp > 0) gorilla_xp_add($user_id, $xp, sprintf('Affiliate satis #%d', $order_id), 'affiliate', $order_id);
 }, 10, 2);
+
+// ── WP Gamify Source Labels ──────────────────────────────
+add_filter('gamify_source_labels', function($labels) {
+    return array_merge($labels, array(
+        'referral'     => 'Video Referans',
+        'affiliate'    => 'Affiliate Satis',
+        'spin'         => 'Sans Carki',
+        'social_share' => 'Sosyal Paylasim',
+        'milestone'    => 'Hedef Tamamlandi',
+        'churn_bonus'  => 'Hosgeldin Bonusu',
+        'shop'         => 'Puan Dukkani',
+        'profile'      => 'Profil',
+        'xp_expired'   => 'XP Suresi Doldu',
+    ));
+});
+
+// ── WP Gamify Event Listeners ────────────────────────────
+// Level-up -> email + badge + milestone + social proof
+add_action('gamify_level_up', function($user_id, $old_level, $new_level) {
+    $new_level_data = function_exists('gorilla_xp_calculate_level') ? gorilla_xp_calculate_level($user_id) : array();
+    $old_level_data = array('number' => $old_level, 'label' => '');
+
+    if (function_exists('gorilla_email_level_up')) {
+        gorilla_email_level_up($user_id, $old_level_data, $new_level_data);
+    }
+    if (function_exists('gorilla_badge_check_all')) {
+        gorilla_badge_check_all($user_id);
+    }
+    if (function_exists('gorilla_xp_check_milestones')) {
+        gorilla_xp_check_milestones($user_id);
+    }
+    do_action('gorilla_xp_level_up', $user_id, $old_level_data, $new_level_data);
+}, 10, 3);
+
+// XP awarded -> milestone check
+add_action('gamify_after_xp_awarded', function($user_id, $amount, $source, $source_id) {
+    if (function_exists('gorilla_xp_check_milestones')) {
+        gorilla_xp_check_milestones($user_id);
+    }
+}, 10, 4);
+
+// XP expiry warning -> email
+add_action('gamify_xp_expiry_warning', function($user_id, $expiring_xp, $expiry_date) {
+    if (function_exists('gorilla_email_xp_expiry_warning')) {
+        gorilla_email_xp_expiry_warning($user_id, $expiring_xp, $expiry_date);
+    }
+}, 10, 3);
+
+// ── Data Migration to WP Gamify ─────────────────────────
+add_action('admin_init', function() {
+    if (!get_option('_gorilla_migrated_to_gamify') && class_exists('WPGamify_XP_Engine')) {
+        $migration_file = GORILLA_LG_PATH . 'includes/class-migration-to-gamify.php';
+        if (file_exists($migration_file)) {
+            require_once $migration_file;
+            Gorilla_Migration_To_Gamify::run();
+        }
+    }
+});
 
 // ── Plugin Action Links ──────────────────────────────────
 add_filter('plugin_action_links_' . GORILLA_LG_BASENAME, function($links) {

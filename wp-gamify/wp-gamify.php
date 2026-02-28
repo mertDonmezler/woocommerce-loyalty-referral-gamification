@@ -3,7 +3,7 @@
  * Plugin Name: WP Gamify
  * Plugin URI: https://wpgamify.com
  * Description: Gelismis XP, level, streak, rozet ve gorev sistemi. WooCommerce ile tam entegre gamification altyapisi.
- * Version: 1.0.1
+ * Version: 2.0.0
  * Author: Mert Donmezler
  * Author URI: https://mertdonmezler.com
  * Text Domain: wp-gamify
@@ -20,12 +20,12 @@ defined( 'ABSPATH' ) || exit;
 
 /* ─── Constants ─────────────────────────────────────────────────────── */
 
-define( 'WPGAMIFY_VERSION', '1.0.1' );
+define( 'WPGAMIFY_VERSION', '2.0.0' );
 define( 'WPGAMIFY_FILE', __FILE__ );
 define( 'WPGAMIFY_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WPGAMIFY_URL', plugin_dir_url( __FILE__ ) );
 define( 'WPGAMIFY_BASENAME', plugin_basename( __FILE__ ) );
-define( 'WPGAMIFY_DB_VERSION', 1 );
+define( 'WPGAMIFY_DB_VERSION', 2 );
 
 /* ─── Autoloader ────────────────────────────────────────────────────── */
 
@@ -160,6 +160,9 @@ add_action( 'plugins_loaded', function (): void {
     if ( is_admin() ) {
         WPGamify_Migrator::check();
     }
+
+    // GDPR hooks (loads on both admin and frontend for export/erase requests).
+    WPGamify_GDPR::init();
 }, 10 );
 
 /**
@@ -175,6 +178,7 @@ add_action( 'plugins_loaded', function (): void {
         'hooks/class-login-hooks.php'    => 'WPGamify_Login_Hooks',
         'hooks/class-review-hooks.php'   => 'WPGamify_Review_Hooks',
         'hooks/class-discount-hooks.php' => 'WPGamify_Discount_Hooks',
+        'hooks/class-profile-hooks.php' => 'WPGamify_Profile_Hooks',
     ];
 
     foreach ( $hook_classes as $file => $class ) {
@@ -253,6 +257,12 @@ add_action( 'wpgamify_daily_maintenance', function (): void {
 
     // Run streak daily maintenance (check for broken streaks).
     WPGamify_Streak_Manager::daily_maintenance();
+
+    // XP Expiry: check and deduct expired XP.
+    if ( class_exists( 'WPGamify_XP_Expiry' ) ) {
+        WPGamify_XP_Expiry::warn();
+        WPGamify_XP_Expiry::check();
+    }
 });
 
 /* ─── Plugin Action Links ───────────────────────────────────────────── */

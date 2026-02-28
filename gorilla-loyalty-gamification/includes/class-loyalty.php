@@ -445,6 +445,13 @@ function gorilla_badge_check_all($user_id) {
     if (!isset($earned['birthday_club'])) {
         if (get_user_meta($user_id, '_gorilla_birthday', true)) gorilla_badge_award($user_id, 'birthday_club');
     }
+
+    // Streak badge (data from WP Gamify)
+    if (class_exists('WPGamify_Streak_Manager')) {
+        $streak_data = WPGamify_Streak_Manager::get_streak($user_id);
+        $max_streak = intval($streak_data['max_streak'] ?? 0);
+        if ($max_streak > 0) $award_tiered('streak_master', $max_streak);
+    }
 }
 
 add_action('woocommerce_order_status_completed', function($order_id) {
@@ -459,6 +466,56 @@ add_action('woocommerce_order_status_processing', function($order_id) {
         gorilla_badge_check_all($order->get_customer_id());
     }
 }, 30);
+
+// ══════════════════════════════════════════════════════════
+// LEADERBOARD (WP Gamify tablosundan sorgu)
+// ══════════════════════════════════════════════════════════
+
+/**
+ * Get XP leaderboard from WP Gamify transactions table.
+ *
+ * @param string $period 'monthly' or 'alltime'.
+ * @param int    $limit  Number of entries.
+ * @return array Array of ['user_id', 'display_name', 'xp_earned'].
+ */
+function gorilla_xp_get_leaderboard($period = 'monthly', $limit = 10) {
+    global $wpdb;
+
+    $table = $wpdb->prefix . 'gamify_xp_transactions';
+    $anonymize = get_option('gorilla_lr_leaderboard_anonymize', 'no') === 'yes';
+    $limit = max(5, min(50, intval($limit)));
+
+    $where = 'WHERE t.amount > 0';
+    if ($period === 'monthly') {
+        $where .= $wpdb->prepare(' AND t.created_at >= %s', gmdate('Y-m-01 00:00:00'));
+    }
+
+    $results = $wpdb->get_results(
+        "SELECT t.user_id, SUM(t.amount) AS xp_earned, u.display_name
+         FROM {$table} t
+         LEFT JOIN {$wpdb->users} u ON t.user_id = u.ID
+         {$where}
+         GROUP BY t.user_id
+         ORDER BY xp_earned DESC
+         LIMIT {$limit}",
+        ARRAY_A
+    );
+
+    if (empty($results)) return array();
+
+    foreach ($results as &$row) {
+        $row['xp_earned'] = intval($row['xp_earned']);
+        if ($anonymize && !empty($row['display_name'])) {
+            $name = $row['display_name'];
+            $parts = explode(' ', $name, 2);
+            $first = mb_substr($parts[0], 0, 1) . str_repeat('*', max(1, mb_strlen($parts[0]) - 1));
+            $last = isset($parts[1]) ? mb_substr($parts[1], 0, 1) . '.' : '';
+            $row['display_name'] = $first . ($last ? ' ' . $last : '');
+        }
+    }
+
+    return $results;
+}
 
 // ══════════════════════════════════════════════════════════
 // SANS CARKI (F4)
@@ -1066,10 +1123,11 @@ function gorilla_transfer_credit_handler() {
 
         // Atomic XP transfer: check balance + deduct + add in a single transaction
         global $wpdb;
+        $level_table = $wpdb->prefix . 'gamify_user_levels';
         $wpdb->query('START TRANSACTION');
         try {
             $sender_xp = intval($wpdb->get_var($wpdb->prepare(
-                "SELECT meta_value FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = '_gorilla_total_xp' FOR UPDATE",
+                "SELECT total_xp FROM {$level_table} WHERE user_id = %d FOR UPDATE",
                 $sender_id
             )));
             if ($sender_xp < $amount) {

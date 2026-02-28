@@ -31,42 +31,7 @@ function gorilla_lg_gdpr_export_data($email_address, $page = 1) {
     $user_id = $user->ID;
     global $wpdb;
 
-    // XP Log Export
-    $xp_table = $wpdb->prefix . 'gorilla_xp_log';
-    if (function_exists('gorilla_lr_table_exists') && gorilla_lr_table_exists($xp_table)) {
-        $xp_logs = $wpdb->get_results($wpdb->prepare(
-            "SELECT amount, reason, reference_type, created_at FROM {$xp_table} WHERE user_id = %d ORDER BY created_at DESC LIMIT 200",
-            $user_id
-        ));
-        foreach ($xp_logs as $xlog) {
-            $export_items[] = array(
-                'group_id'    => 'gorilla-xp-log',
-                'group_label' => 'Gorilla LG - XP Gecmisi',
-                'item_id'     => 'gorilla-xp-log-' . $xlog->created_at,
-                'data'        => array(
-                    array('name' => 'Miktar', 'value' => $xlog->amount),
-                    array('name' => 'Aciklama', 'value' => $xlog->reason),
-                    array('name' => 'Tur', 'value' => $xlog->reference_type),
-                    array('name' => 'Tarih', 'value' => $xlog->created_at),
-                ),
-            );
-        }
-    }
-
-    // XP bilgileri
-    $total_xp = get_user_meta($user_id, '_gorilla_total_xp', true);
-    if ($total_xp) {
-        $level = function_exists('gorilla_xp_calculate_level') ? gorilla_xp_calculate_level($user_id) : null;
-        $export_items[] = array(
-            'group_id'    => 'gorilla-xp',
-            'group_label' => 'XP & Level Bilgileri',
-            'item_id'     => 'xp-' . $user_id,
-            'data'        => array(
-                array('name' => 'Toplam XP', 'value' => intval($total_xp)),
-                array('name' => 'Level', 'value' => $level ? ($level['emoji'] . ' ' . $level['label']) : 'Bilinmiyor'),
-            ),
-        );
-    }
+    // XP/Level/Streak export: WP Gamify GDPR handles this via its own exporter.
 
     // Birthday
     $birthday = get_user_meta($user_id, '_gorilla_birthday', true);
@@ -81,11 +46,12 @@ function gorilla_lg_gdpr_export_data($email_address, $page = 1) {
         );
     }
 
-    // Gamification verileri
-    $login_streak      = intval(get_user_meta($user_id, '_gorilla_login_streak', true));
-    $login_streak_best = intval(get_user_meta($user_id, '_gorilla_login_streak_best', true));
+    // Gamification verileri (streak is now in WP Gamify)
+    $streak_data = class_exists('WPGamify_Streak_Manager') ? WPGamify_Streak_Manager::get_streak($user_id) : array();
+    $login_streak      = intval($streak_data['current_streak'] ?? 0);
+    $login_streak_best = intval($streak_data['max_streak'] ?? 0);
     $spin_available    = intval(get_user_meta($user_id, '_gorilla_spin_available', true));
-    $login_last_date   = get_user_meta($user_id, '_gorilla_login_last_date', true);
+    $login_last_date   = $streak_data['last_activity_date'] ?? '';
     $last_tier         = get_user_meta($user_id, '_gorilla_last_tier', true);
 
     $spin_history = get_user_meta($user_id, '_gorilla_spin_history', true);
@@ -234,26 +200,11 @@ function gorilla_lg_gdpr_erase_data($email_address, $page = 1) {
     $user_id = $user->ID;
     global $wpdb;
 
-    // XP bilgilerini sil
-    if (get_user_meta($user_id, '_gorilla_total_xp', true) !== '') {
-        delete_user_meta($user_id, '_gorilla_total_xp');
-        $items_removed++;
-    }
+    // XP/Level/Streak erasure: WP Gamify GDPR handles these via its own eraser.
 
-    // XP log'larini sil
-    $xp_table = $wpdb->prefix . 'gorilla_xp_log';
-    if (function_exists('gorilla_lr_table_exists') && gorilla_lr_table_exists($xp_table)) {
-        $deleted = $wpdb->delete($xp_table, array('user_id' => $user_id), array('%d'));
-        if ($deleted) $items_removed += $deleted;
-    }
-
-    // XP transient temizle
-    delete_transient('gorilla_xp_' . $user_id);
-
-    // Gamification user meta temizligi
+    // Gamification user meta temizligi (Gorilla-owned meta only)
     $meta_keys = array(
         '_gorilla_birthday',
-        '_gorilla_login_streak', '_gorilla_login_last_date', '_gorilla_login_streak_best',
         '_gorilla_badges', '_gorilla_spin_available', '_gorilla_spin_history',
         '_gorilla_milestones', '_gorilla_social_shares', '_gorilla_referred_by',
         '_gorilla_last_tier', '_gorilla_lr_tier_key',
@@ -311,12 +262,7 @@ function gorilla_lg_gdpr_erase_data($email_address, $page = 1) {
     ));
     if ($churn_deleted) $items_removed += $churn_deleted;
 
-    // XP expiry guard key'lerini temizle
-    $xp_exp_deleted = $wpdb->query($wpdb->prepare(
-        "DELETE FROM {$wpdb->usermeta} WHERE user_id = %d AND (meta_key LIKE '_gorilla_xp_expiry_%%' OR meta_key LIKE '_gorilla_xp_warn_%%')",
-        $user_id
-    ));
-    if ($xp_exp_deleted) $items_removed += $xp_exp_deleted;
+    // XP expiry guard keys: WP Gamify GDPR handles _wpgamify_xp_expiry_* and _wpgamify_xp_warn_*
 
     // Smart coupon guard key'lerini temizle
     $smart_deleted = $wpdb->query($wpdb->prepare(

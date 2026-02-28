@@ -826,7 +826,7 @@ function gorilla_admin_csv_export() {
 
         case 'xp_log':
             fputcsv($output, array('ID', 'User ID', 'User Name', 'XP', 'Source', 'Description', 'Date'));
-            $table = $wpdb->prefix . 'gorilla_xp_log';
+            $table = $wpdb->prefix . 'gamify_xp_transactions';
             $rows = $wpdb->get_results($wpdb->prepare(
                 "SELECT * FROM {$table} WHERE created_at BETWEEN %s AND %s ORDER BY created_at DESC",
                 $from, $to_end
@@ -837,9 +837,9 @@ function gorilla_admin_csv_export() {
                     $row->id,
                     $row->user_id,
                     $user ? $user->display_name : 'N/A',
-                    $row->xp,
+                    $row->amount,
                     $row->source ?? '',
-                    $row->description ?? '',
+                    $row->note ?? '',
                     $row->created_at
                 ));
             }
@@ -871,9 +871,9 @@ function gorilla_admin_csv_export() {
 
         case 'leaderboard':
             fputcsv($output, array('Rank', 'User ID', 'User Name', 'Total XP', 'Level', 'Tier'));
-            $table = $wpdb->prefix . 'gorilla_xp_log';
+            $table = $wpdb->prefix . 'gamify_xp_transactions';
             $rows = $wpdb->get_results($wpdb->prepare(
-                "SELECT user_id, SUM(xp) as total_xp FROM {$table} WHERE created_at BETWEEN %s AND %s GROUP BY user_id ORDER BY total_xp DESC LIMIT 100",
+                "SELECT user_id, SUM(amount) as total_xp FROM {$table} WHERE created_at BETWEEN %s AND %s GROUP BY user_id ORDER BY total_xp DESC LIMIT 100",
                 $from, $to_end
             ));
             $rank = 1;

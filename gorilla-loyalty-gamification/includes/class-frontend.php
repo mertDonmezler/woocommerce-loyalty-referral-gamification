@@ -617,8 +617,9 @@ add_action('woocommerce_account_gorilla-loyalty_endpoint', function() {
             <?php
             // ═══ LOGIN STREAK ═══
             if (get_option('gorilla_lr_streak_enabled', 'no') === 'yes'):
-                $login_streak = intval(get_user_meta($user_id, '_gorilla_login_streak', true));
-                $login_streak_best = intval(get_user_meta($user_id, '_gorilla_login_streak_best', true));
+                $streak_data = class_exists('WPGamify_Streak_Manager') ? WPGamify_Streak_Manager::get_streak($user_id) : array();
+                $login_streak = intval($streak_data['current_streak'] ?? 0);
+                $login_streak_best = intval($streak_data['max_streak'] ?? 0);
             ?>
             <hr style="border:none; border-top:2px dashed #e5e7eb; margin:35px 0;">
             <h2 style="font-size:24px; font-weight:800; margin-bottom:20px;">🔥 Giris Serisi</h2>
@@ -947,12 +948,12 @@ add_action('woocommerce_account_gorilla-loyalty_endpoint', function() {
             <!-- Analytics Dashboard -->
             <?php
             global $wpdb;
-            $xp_table     = $wpdb->prefix . 'gorilla_xp_log';
+            $xp_table     = $wpdb->prefix . 'gamify_xp_transactions';
             $credit_table = $wpdb->prefix . 'gorilla_credit_log';
 
-            // Son 6 ay XP verisi (aylik)
+            // Son 6 ay XP verisi (aylik) - WP Gamify tablosundan
             $xp_monthly = $wpdb->get_results($wpdb->prepare(
-                "SELECT DATE_FORMAT(created_at, '%%Y-%%m') as month, SUM(xp) as total_xp FROM {$xp_table} WHERE user_id = %d AND created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH) GROUP BY month ORDER BY month ASC",
+                "SELECT DATE_FORMAT(created_at, '%%Y-%%m') as month, SUM(amount) as total_xp FROM {$xp_table} WHERE user_id = %d AND created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH) GROUP BY month ORDER BY month ASC",
                 $user_id
             ));
 

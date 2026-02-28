@@ -27,6 +27,12 @@ class WPGamify_Activator {
 
         // Flush rewrite rules on next page load.
         set_transient( 'wpgamify_flush_rewrite', 'yes', 60 );
+
+        /**
+         * Fires after WP Gamify activation is complete.
+         * External plugins (e.g., Gorilla Loyalty) can hook here for data migration.
+         */
+        do_action( 'gamify_after_activation' );
     }
 
     /**

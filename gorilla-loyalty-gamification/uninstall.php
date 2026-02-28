@@ -27,9 +27,8 @@ foreach ($active_plugins as $p) {
     }
 }
 
-// Remove XP log table (exclusively LG data)
-$xp_table = $wpdb->prefix . 'gorilla_xp_log';
-$wpdb->query("DROP TABLE IF EXISTS {$xp_table}");
+// XP log table: kept for potential rollback. WP Gamify owns XP data now.
+// gorilla_xp_log is legacy and will be cleaned up manually if migration confirmed.
 
 // Drop credit_log table only if RA plugin is not active.
 // RA uses this table for affiliate commission logging.
@@ -136,12 +135,10 @@ wp_clear_scheduled_hook('gorilla_meta_cleanup_weekly');
 // Remove all user meta that belongs exclusively to LG (batch delete for performance).
 // NOTE: _gorilla_referred_by is NOT deleted here because it is written and owned
 // by the Referral & Affiliate (RA) plugin. RA's uninstall.php handles its cleanup.
+// NOTE: _gorilla_total_xp, _gorilla_login_streak, _gorilla_login_last_date,
+// _gorilla_login_streak_best are NOT deleted here - data migrated to WP Gamify tables.
 $meta_patterns = array(
-    '_gorilla_total_xp',
     '_gorilla_birthday',
-    '_gorilla_login_streak',
-    '_gorilla_login_last_date',
-    '_gorilla_login_streak_best',
     '_gorilla_badges',
     '_gorilla_spin_available',
     '_gorilla_spin_history',
@@ -177,8 +174,6 @@ $like_patterns = array(
     '_gorilla_grace_warned_%',
     '_gorilla_anniversary_year_%',
     '_gorilla_churn_reengaged_%',
-    '_gorilla_xp_expiry_%',
-    '_gorilla_xp_warn_%',
     '_gorilla_smart_coupon_%',
     '_gorilla_transfer_total_%',
     '_gorilla_transfer_today_%',

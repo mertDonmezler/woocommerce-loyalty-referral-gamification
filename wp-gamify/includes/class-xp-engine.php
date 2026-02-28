@@ -346,7 +346,7 @@ class WPGamify_XP_Engine {
      * @param int $user_id Kullanici ID.
      * @return void
      */
-    private static function sync_user_level( int $user_id ): void {
+    public static function sync_user_level( int $user_id ): void {
         global $wpdb;
 
         $txn_table   = $wpdb->prefix . 'gamify_xp_transactions';
@@ -477,7 +477,7 @@ class WPGamify_XP_Engine {
             'campaign'     => 'Kampanya',
             'first_order'  => 'Ilk Siparis',
         ];
-
+        $labels = apply_filters( 'gamify_source_labels', $labels );
         return $labels[ $source ] ?? ucfirst( $source );
     }
 

@@ -23,56 +23,16 @@ add_action('admin_init', function() {
     update_option('gorilla_lr_period_months', max(1, min(24, intval($_POST['period_months'] ?? 6))));
     update_option('gorilla_lr_tier_grace_days', max(0, min(90, intval($_POST['tier_grace_days'] ?? 0))));
 
-    // XP & Level ayarlari
-    update_option('gorilla_lr_enabled_xp', $validate_yesno($_POST['enabled_xp'] ?? 'no'));
-    update_option('gorilla_lr_xp_per_order_rate', max(1, min(1000, intval($_POST['xp_per_order_rate'] ?? 10))));
-    update_option('gorilla_lr_xp_review', max(0, min(500, intval($_POST['xp_review'] ?? 25))));
-    update_option('gorilla_lr_xp_referral', max(0, min(500, intval($_POST['xp_referral'] ?? 50))));
-    update_option('gorilla_lr_xp_affiliate', max(0, min(500, intval($_POST['xp_affiliate'] ?? 30))));
-    update_option('gorilla_lr_xp_first_order', max(0, min(1000, intval($_POST['xp_first_order'] ?? 100))));
-    update_option('gorilla_lr_xp_register', max(0, min(500, intval($_POST['xp_register'] ?? 10))));
-    update_option('gorilla_lr_xp_profile', max(0, min(500, intval($_POST['xp_profile'] ?? 20))));
+    // XP & Level, XP Expiry, Category XP, Seasonal Bonus, Login Streak:
+    // All managed by WP Gamify v2.0.0 now. Settings removed from Gorilla.
 
-    // XP Expiry
-    update_option('gorilla_lr_xp_expiry_enabled', $validate_yesno($_POST['xp_expiry_enabled'] ?? 'no'));
-    update_option('gorilla_lr_xp_expiry_months', max(1, min(60, intval($_POST['xp_expiry_months'] ?? 12))));
-    update_option('gorilla_lr_xp_expiry_warn_days', max(0, min(90, intval($_POST['xp_expiry_warn_days'] ?? 14))));
-
-    // Category XP multipliers
-    $cat_mults = array();
-    if (!empty($_POST['cat_xp_ids']) && is_array($_POST['cat_xp_ids'])) {
-        foreach ($_POST['cat_xp_ids'] as $i => $cat_id) {
-            $cat_id = intval($cat_id);
-            $cat_mult = isset($_POST['cat_xp_mults'][$i]) ? floatval($_POST['cat_xp_mults'][$i]) : 1.0;
-            if ($cat_id > 0 && $cat_mult >= 1.0 && $cat_mult <= 5.0) {
-                $cat_mults[$cat_id] = $cat_mult;
-            }
-        }
-    }
-    update_option('gorilla_lr_category_xp_multipliers', $cat_mults);
-
-    // Seasonal Bonus ayarlari
-    update_option('gorilla_lr_bonus_enabled', $validate_yesno($_POST['bonus_enabled'] ?? 'no'));
-    update_option('gorilla_lr_bonus_multiplier', max(1, min(5, floatval($_POST['bonus_multiplier'] ?? 1.5))));
-    update_option('gorilla_lr_bonus_start', sanitize_text_field($_POST['bonus_start'] ?? ''));
-    update_option('gorilla_lr_bonus_end', sanitize_text_field($_POST['bonus_end'] ?? ''));
-    update_option('gorilla_lr_bonus_label', sanitize_text_field($_POST['bonus_label'] ?? ''));
-
-    // Gamification: Anniversary
+    // Gamification: Anniversary (credit only - XP managed by WP Gamify)
     update_option('gorilla_lr_anniversary_enabled', $validate_yesno($_POST['anniversary_enabled'] ?? 'no'));
-    update_option('gorilla_lr_anniversary_xp', max(0, min(1000, intval($_POST['anniversary_xp'] ?? 100))));
     update_option('gorilla_lr_anniversary_credit', max(0, min(200, floatval($_POST['anniversary_credit'] ?? 20))));
 
-    // Gamification: Birthday
+    // Gamification: Birthday (credit only - XP managed by WP Gamify)
     update_option('gorilla_lr_birthday_enabled', $validate_yesno($_POST['birthday_enabled'] ?? 'no'));
-    update_option('gorilla_lr_birthday_xp', max(0, min(1000, intval($_POST['birthday_xp'] ?? 50))));
     update_option('gorilla_lr_birthday_credit', max(0, min(100, floatval($_POST['birthday_credit'] ?? 10))));
-
-    // Gamification: Login Streak
-    update_option('gorilla_lr_streak_enabled', $validate_yesno($_POST['streak_enabled'] ?? 'no'));
-    update_option('gorilla_lr_streak_daily_xp', max(0, min(100, intval($_POST['streak_daily_xp'] ?? 5))));
-    update_option('gorilla_lr_streak_7day_bonus', max(0, min(500, intval($_POST['streak_7day_bonus'] ?? 50))));
-    update_option('gorilla_lr_streak_30day_bonus', max(0, min(1000, intval($_POST['streak_30day_bonus'] ?? 200))));
 
     // Gamification: Badges
     update_option('gorilla_lr_badges_enabled', $validate_yesno($_POST['badges_enabled'] ?? 'no'));
@@ -211,27 +171,7 @@ add_action('admin_init', function() {
     update_option('gorilla_lr_credit_expiry_warn_days', max(0, min(90, intval($_POST['credit_expiry_warn_days'] ?? 7))));
     update_option('gorilla_lr_coupon_enabled', in_array($_POST['coupon_enabled'] ?? 'no', array('yes', 'no'), true) ? $_POST['coupon_enabled'] : 'no');
 
-    // Level ayarları
-    $levels = array();
-    $level_keys = $_POST['level_key'] ?? array();
-
-    for ($i = 0; $i < count($level_keys); $i++) {
-        $key = sanitize_key($level_keys[$i]);
-        if (empty($key)) continue;
-
-        $levels[$key] = array(
-            'label'  => sanitize_text_field($_POST['level_label'][$i] ?? ''),
-            'min_xp' => intval($_POST['level_min_xp'][$i] ?? 0),
-            'emoji'  => sanitize_text_field($_POST['level_emoji'][$i] ?? '🏅'),
-            'color'  => sanitize_hex_color($_POST['level_color'][$i] ?? '#999999'),
-        );
-    }
-
-    if (!empty($levels)) {
-        // Min XP'ye göre sırala
-        uasort($levels, function($a, $b) { return $a['min_xp'] <=> $b['min_xp']; });
-        update_option('gorilla_lr_levels', $levels);
-    }
+    // Level ayarları: WP Gamify v2.0.0 yönetiyor. gorilla_lr_levels artık kullanılmıyor.
 
     // Seviye ayarları
     $tiers = array();
@@ -278,30 +218,7 @@ function gorilla_settings_page_render() {
     $period           = get_option('gorilla_lr_period_months', 6);
     $tiers            = gorilla_get_tiers();
 
-    // XP & Level ayarları
-    $enabled_xp         = get_option('gorilla_lr_enabled_xp', 'yes');
-    $xp_order_rate      = get_option('gorilla_lr_xp_per_order_rate', 10);
-    $xp_review          = get_option('gorilla_lr_xp_review', 25);
-    $xp_referral        = get_option('gorilla_lr_xp_referral', 50);
-    $xp_affiliate       = get_option('gorilla_lr_xp_affiliate', 30);
-    $xp_first_order     = get_option('gorilla_lr_xp_first_order', 100);
-    $xp_register        = get_option('gorilla_lr_xp_register', 10);
-    $xp_profile         = get_option('gorilla_lr_xp_profile', 20);
-    $levels             = get_option('gorilla_lr_levels', array());
-    $cat_xp_multipliers = get_option('gorilla_lr_category_xp_multipliers', array());
-
-    // Varsayılan level'lar
-    if (empty($levels)) {
-        $levels = array(
-            'level_1' => array('label' => 'Çaylak',      'min_xp' => 0,    'emoji' => '🌱', 'color' => '#a3e635'),
-            'level_2' => array('label' => 'Keşifçi',     'min_xp' => 50,   'emoji' => '🔍', 'color' => '#22d3ee'),
-            'level_3' => array('label' => 'Alışverişçi', 'min_xp' => 150,  'emoji' => '🛒', 'color' => '#60a5fa'),
-            'level_4' => array('label' => 'Sadık',       'min_xp' => 400,  'emoji' => '⭐', 'color' => '#facc15'),
-            'level_5' => array('label' => 'Uzman',       'min_xp' => 800,  'emoji' => '🏅', 'color' => '#f97316'),
-            'level_6' => array('label' => 'VIP',         'min_xp' => 1500, 'emoji' => '💎', 'color' => '#a855f7'),
-            'level_7' => array('label' => 'Efsane',      'min_xp' => 3000, 'emoji' => '👑', 'color' => '#fbbf24'),
-        );
-    }
+    // XP & Level ayarları artık WP Gamify v2.0.0 tarafından yönetiliyor.
 
     settings_errors('gorilla_settings');
     ?>
@@ -343,273 +260,22 @@ function gorilla_settings_page_render() {
                 </table>
             </div>
 
-            <!-- XP & LEVEL AYARLARI -->
+            <!-- XP & LEVEL AYARLARI - WP Gamify'a taşındı -->
             <div style="background:#fff; padding:25px 30px; border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,0.06); margin:20px 0; max-width:900px;">
                 <h2 style="margin-top:0; border-bottom:2px solid #f0f0f0; padding-bottom:12px;">🎮 XP & Level Sistemi</h2>
-                <p style="color:#666; margin-bottom:20px;">Müşteriler çeşitli eylemlerden XP kazanır ve level atlar. Bu sistem tier indirimlerinden bağımsız çalışır - sadece gamification amaçlıdır.</p>
-                <table class="form-table">
-                    <tr>
-                        <th>XP Sistemi</th>
-                        <td>
-                            <label><input type="checkbox" name="enabled_xp" value="yes" <?php checked($enabled_xp, 'yes'); ?>> Aktif</label>
-                            <p class="description">Devre dışı bırakırsanız XP kazanımı ve level sistemi çalışmaz.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Sipariş XP Oranı</th>
-                        <td>
-                            Sipariş tutarı / <input type="number" name="xp_per_order_rate" value="<?php echo esc_attr($xp_order_rate); ?>" min="1" max="1000" style="width:80px;"> = XP
-                            <p class="description">Örn: 100₺ sipariş / 10 = 10 XP</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Kategori XP Çarpanı</th>
-                        <td>
-                            <div id="gorilla-cat-xp-list">
-                            <?php
-                            if (!empty($cat_xp_multipliers) && function_exists('get_terms')) {
-                                $idx = 0;
-                                foreach ($cat_xp_multipliers as $cat_id => $cat_mult) {
-                                    $term = get_term(intval($cat_id), 'product_cat');
-                                    if (!$term || is_wp_error($term)) continue;
-                                    ?>
-                                    <div class="gorilla-cat-xp-row" style="margin-bottom:6px;">
-                                        <select name="cat_xp_ids[]" style="width:200px;">
-                                            <option value="">-- Seçiniz --</option>
-                                            <?php
-                                            $all_cats = get_terms(array('taxonomy' => 'product_cat', 'hide_empty' => false));
-                                            if (!is_wp_error($all_cats)) {
-                                                foreach ($all_cats as $cat) {
-                                                    printf('<option value="%d"%s>%s</option>', $cat->term_id, selected($cat->term_id, intval($cat_id), false), esc_html($cat->name));
-                                                }
-                                            }
-                                            ?>
-                                        </select>
-                                        <select name="cat_xp_mults[]" style="width:80px;">
-                                            <?php foreach (array(1.0, 1.5, 2.0, 2.5, 3.0) as $m) : ?>
-                                                <option value="<?php echo $m; ?>"<?php selected($m, $cat_mult); ?>><?php echo $m; ?>x</option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                        <button type="button" class="button button-small gorilla-cat-xp-remove" style="color:#d63638;">✕</button>
-                                    </div>
-                                    <?php
-                                    $idx++;
-                                }
-                            }
-                            ?>
-                            </div>
-                            <button type="button" class="button button-small" id="gorilla-cat-xp-add">+ Kategori Ekle</button>
-                            <p class="description">Belirli kategorilere ekstra XP çarpanı tanımlayın. Ürün seviyesi çarpan da varsa büyük olan geçerlidir.</p>
-                            <script>
-                            (function(){
-                                var list = document.getElementById('gorilla-cat-xp-list');
-                                var addBtn = document.getElementById('gorilla-cat-xp-add');
-                                if (!list || !addBtn) return;
-
-                                var catOptions = <?php
-                                    $cats_json = array();
-                                    if (function_exists('get_terms')) {
-                                        $all_cats = get_terms(array('taxonomy' => 'product_cat', 'hide_empty' => false));
-                                        if (!is_wp_error($all_cats)) {
-                                            foreach ($all_cats as $cat) {
-                                                $cats_json[] = array('id' => $cat->term_id, 'name' => $cat->name);
-                                            }
-                                        }
-                                    }
-                                    echo wp_json_encode($cats_json);
-                                ?>;
-
-                                addBtn.addEventListener('click', function() {
-                                    var row = document.createElement('div');
-                                    row.className = 'gorilla-cat-xp-row';
-                                    row.style.marginBottom = '6px';
-
-                                    var sel = '<select name="cat_xp_ids[]" style="width:200px;"><option value="">-- Seçiniz --</option>';
-                                    catOptions.forEach(function(c) { sel += '<option value="' + c.id + '">' + c.name + '</option>'; });
-                                    sel += '</select>';
-
-                                    var mults = '<select name="cat_xp_mults[]" style="width:80px;">';
-                                    [1.0, 1.5, 2.0, 2.5, 3.0].forEach(function(m) { mults += '<option value="' + m + '">' + m + 'x</option>'; });
-                                    mults += '</select>';
-
-                                    row.innerHTML = sel + ' ' + mults + ' <button type="button" class="button button-small gorilla-cat-xp-remove" style="color:#d63638;">✕</button>';
-                                    list.appendChild(row);
-                                });
-
-                                list.addEventListener('click', function(e) {
-                                    if (e.target.classList.contains('gorilla-cat-xp-remove')) {
-                                        e.target.closest('.gorilla-cat-xp-row').remove();
-                                    }
-                                });
-                            })();
-                            </script>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>İlk Sipariş Bonusu</th>
-                        <td>
-                            <input type="number" name="xp_first_order" value="<?php echo esc_attr($xp_first_order); ?>" min="0" max="1000" style="width:80px;"> XP
-                            <p class="description">Müşterinin ilk siparişinde ekstra XP bonusu.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Ürün Yorumu</th>
-                        <td>
-                            <input type="number" name="xp_review" value="<?php echo esc_attr($xp_review); ?>" min="0" max="500" style="width:80px;"> XP
-                            <p class="description">Onaylanan her ürün yorumu için verilecek XP.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Video Referans Onayı</th>
-                        <td>
-                            <input type="number" name="xp_referral" value="<?php echo esc_attr($xp_referral); ?>" min="0" max="500" style="width:80px;"> XP
-                            <p class="description">Video referans başvurusu onaylandığında verilecek XP.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Affiliate Satış</th>
-                        <td>
-                            <input type="number" name="xp_affiliate" value="<?php echo esc_attr($xp_affiliate); ?>" min="0" max="500" style="width:80px;"> XP
-                            <p class="description">Her başarılı affiliate satışı için verilecek XP.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Kayıt Bonusu</th>
-                        <td>
-                            <input type="number" name="xp_register" value="<?php echo esc_attr($xp_register); ?>" min="0" max="500" style="width:80px;"> XP
-                            <p class="description">Yeni üye kaydında hoşgeldin XP'si.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Profil Tamamlama</th>
-                        <td>
-                            <input type="number" name="xp_profile" value="<?php echo esc_attr($xp_profile); ?>" min="0" max="500" style="width:80px;"> XP
-                            <p class="description">Profil bilgilerini (ad, adres, telefon) tamamlayanlara verilecek XP.</p>
-                        </td>
-                    </tr>
-                </table>
-
-                <h3 style="margin-top:30px; border-bottom:1px solid #f0f0f0; padding-bottom:10px;">⏳ XP Suresi</h3>
-                <table class="form-table">
-                    <tr>
-                        <th>XP Suresi</th>
-                        <td>
-                            <label><input type="checkbox" name="xp_expiry_enabled" value="yes" <?php checked(get_option('gorilla_lr_xp_expiry_enabled', 'no'), 'yes'); ?>> Aktif</label>
-                            <p class="description">Belirli sureden eski XP puanlari otomatik olarak silinir.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>XP Gecerlilik Suresi</th>
-                        <td>
-                            <input type="number" name="xp_expiry_months" value="<?php echo esc_attr(get_option('gorilla_lr_xp_expiry_months', 12)); ?>" min="1" max="60" style="width:80px;"> ay
-                            <p class="description">Bu sureden eski XP puanlari otomatik silinir. Ornek: 12 ay = 1 yil oncesinden eski puanlar sona erer.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Uyari Suresi</th>
-                        <td>
-                            <input type="number" name="xp_expiry_warn_days" value="<?php echo esc_attr(get_option('gorilla_lr_xp_expiry_warn_days', 14)); ?>" min="0" max="90" style="width:80px;"> gun once
-                            <p class="description">XP sona ermeden kac gun once uyari bildirimi/emaili gonderilsin. 0 = uyari yok.</p>
-                        </td>
-                    </tr>
-                </table>
-
-                <h3 style="margin-top:30px; border-bottom:1px solid #f0f0f0; padding-bottom:10px;">🏆 Level Tanımları</h3>
-                <p style="color:#666; margin-bottom:15px;">Level'ları ve XP eşiklerini özelleştirin. Minimum XP'ye göre otomatik sıralanır.</p>
-
-                <table class="widefat" id="gorilla-levels-table" style="border-collapse:separate; border-spacing:0 8px;">
-                    <thead>
-                        <tr style="background:#f8f9fa;">
-                            <th style="width:50px;">Emoji</th>
-                            <th style="width:90px;">Anahtar</th>
-                            <th>Level Adı</th>
-                            <th style="width:120px;">Min. XP</th>
-                            <th style="width:70px;">Renk</th>
-                            <th style="width:50px;"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($levels as $lkey => $lvl): ?>
-                        <tr class="gorilla-level-row" style="background:#fff; border:1px solid #eee;">
-                            <td><input type="text" name="level_emoji[]" value="<?php echo esc_attr($lvl['emoji']); ?>" style="width:45px; text-align:center; font-size:20px;"></td>
-                            <td><input type="text" name="level_key[]" value="<?php echo esc_attr($lkey); ?>" style="width:90px; font-family:monospace; font-size:12px;" readonly></td>
-                            <td><input type="text" name="level_label[]" value="<?php echo esc_attr($lvl['label']); ?>" style="width:100%; font-weight:600;" required></td>
-                            <td><input type="number" name="level_min_xp[]" value="<?php echo esc_attr($lvl['min_xp']); ?>" min="0" step="10" style="width:100%;" required></td>
-                            <td><input type="color" name="level_color[]" value="<?php echo esc_attr($lvl['color']); ?>" style="width:45px; height:35px; padding:2px;"></td>
-                            <td><button type="button" class="button gorilla-remove-level" title="Sil" style="color:#dc3545;">✕</button></td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-
-                <button type="button" id="gorilla-add-level" class="button" style="margin-top:10px;">➕ Yeni Level Ekle</button>
-
-                <script>
-                document.getElementById('gorilla-add-level').addEventListener('click', function() {
-                    var tbody = document.querySelector('#gorilla-levels-table tbody');
-                    var count = tbody.querySelectorAll('tr').length;
-                    var key = 'level_' + (count + 1);
-                    var row = document.createElement('tr');
-                    row.className = 'gorilla-level-row';
-                    row.style.background = '#fff';
-                    row.innerHTML = '<td><input type="text" name="level_emoji[]" value="🏅" style="width:45px; text-align:center; font-size:20px;"></td>' +
-                        '<td><input type="text" name="level_key[]" value="' + key + '" style="width:90px; font-family:monospace; font-size:12px;"></td>' +
-                        '<td><input type="text" name="level_label[]" value="" style="width:100%; font-weight:600;" required placeholder="Level Adı"></td>' +
-                        '<td><input type="number" name="level_min_xp[]" value="0" min="0" step="10" style="width:100%;" required></td>' +
-                        '<td><input type="color" name="level_color[]" value="#999999" style="width:45px; height:35px; padding:2px;"></td>' +
-                        '<td><button type="button" class="button gorilla-remove-level" title="Sil" style="color:#dc3545;">✕</button></td>';
-                    tbody.appendChild(row);
-                });
-                document.addEventListener('click', function(e) {
-                    if (e.target.classList.contains('gorilla-remove-level')) {
-                        if (confirm('Bu level\'ı silmek istediğinize emin misiniz?')) {
-                            e.target.closest('tr').remove();
-                        }
-                    }
-                });
-                </script>
+                <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:16px 20px; color:#1e40af;">
+                    <strong>XP, Level, Streak, XP Suresi ve Kampanya ayarlari artik WP Gamify eklentisi tarafindan yonetilmektedir.</strong>
+                    <br><br>
+                    <?php
+                    $gamify_url = admin_url('admin.php?page=wp-gamify');
+                    ?>
+                    <a href="<?php echo esc_url($gamify_url); ?>" class="button button-primary" style="margin-top:5px;">WP Gamify Ayarlarina Git &rarr;</a>
+                </div>
             </div>
 
-            <!-- SEASONAL BONUS AYARLARI -->
-            <div style="background:#fff; padding:25px 30px; border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,0.06); margin:20px 0; max-width:900px;">
-                <h2 style="margin-top:0; border-bottom:2px solid #f0f0f0; padding-bottom:12px;">Seasonal Bonus Carpani</h2>
-                <p style="color:#666; margin-bottom:20px;">Belirli tarihlerde XP, referral credit ve affiliate komisyonlarini carpan ile artirabilirsiniz. Kampanya donemi icin idealdir.</p>
-                <table class="form-table">
-                    <tr>
-                        <th>Bonus Sistemi</th>
-                        <td>
-                            <label><input type="checkbox" name="bonus_enabled" value="yes" <?php checked(get_option('gorilla_lr_bonus_enabled', 'no'), 'yes'); ?>> Aktif</label>
-                            <p class="description">Aktif edildiginde belirlenen tarih araliginda carpan uygulanir.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Carpan</th>
-                        <td>
-                            <input type="number" name="bonus_multiplier" value="<?php echo esc_attr(get_option('gorilla_lr_bonus_multiplier', 1.5)); ?>" min="1" max="5" step="0.1" style="width:80px;">x
-                            <p class="description">Ornek: 1.5 = %50 daha fazla XP/credit/komisyon. 2 = 2 kat.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Baslangic Tarihi</th>
-                        <td>
-                            <input type="date" name="bonus_start" value="<?php echo esc_attr(get_option('gorilla_lr_bonus_start', '')); ?>" style="width:180px;">
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Bitis Tarihi</th>
-                        <td>
-                            <input type="date" name="bonus_end" value="<?php echo esc_attr(get_option('gorilla_lr_bonus_end', '')); ?>" style="width:180px;">
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Kampanya Etiketi</th>
-                        <td>
-                            <input type="text" name="bonus_label" value="<?php echo esc_attr(get_option('gorilla_lr_bonus_label', '')); ?>" style="width:300px;" placeholder="Ornek: Yilbasi Kampanyasi">
-                            <p class="description">Opsiyonel: Kampanya ismi (log ve bildirimlerde goruntulenir).</p>
-                        </td>
-                    </tr>
-                </table>
-            </div>
+            <!-- ESKi XP AYARLARI BURADAN KALDIRILDI - WP Gamify yonetiyor -->
+            <?php /* XP & Level, Category XP, XP Expiry, Level Config, Seasonal Bonus ayarlari
+                     artik WP Gamify v2.0.0 eklentisinden yonetiliyor. */ ?>
 
             <!-- SEVIYE AYARLARI -->
             <div style="background:#fff; padding:25px 30px; border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,0.06); margin:20px 0; max-width:900px;">
@@ -703,13 +369,6 @@ function gorilla_settings_page_render() {
                         </td>
                     </tr>
                     <tr>
-                        <th>Dogum Gunu XP</th>
-                        <td>
-                            <input type="number" name="birthday_xp" value="<?php echo esc_attr(get_option('gorilla_lr_birthday_xp', 50)); ?>" min="0" max="1000" style="width:80px;"> XP
-                            <p class="description">Dogum gununde verilecek bonus XP miktari.</p>
-                        </td>
-                    </tr>
-                    <tr>
                         <th>Dogum Gunu Store Credit</th>
                         <td>
                             <input type="number" name="birthday_credit" value="<?php echo esc_attr(get_option('gorilla_lr_birthday_credit', 10)); ?>" min="0" max="100" step="0.01" style="width:100px;"> ₺
@@ -728,13 +387,6 @@ function gorilla_settings_page_render() {
                         </td>
                     </tr>
                     <tr>
-                        <th>Yildonumu XP</th>
-                        <td>
-                            <input type="number" name="anniversary_xp" value="<?php echo esc_attr(get_option('gorilla_lr_anniversary_xp', 100)); ?>" min="0" max="1000" style="width:80px;"> XP
-                            <p class="description">Baz XP miktari. Yil sayisi ile carpilir (2. yil = 200 XP).</p>
-                        </td>
-                    </tr>
-                    <tr>
                         <th>Yildonumu Store Credit</th>
                         <td>
                             <input type="number" name="anniversary_credit" value="<?php echo esc_attr(get_option('gorilla_lr_anniversary_credit', 20)); ?>" min="0" max="200" step="0.01" style="width:100px;"> ₺
@@ -743,37 +395,6 @@ function gorilla_settings_page_render() {
                     </tr>
                 </table>
 
-                <h3 style="margin-top:30px; border-bottom:1px solid #f0f0f0; padding-bottom:10px;">🔥 Giris Serisi (Login Streak)</h3>
-                <table class="form-table">
-                    <tr>
-                        <th>Giris Serisi</th>
-                        <td>
-                            <label><input type="checkbox" name="streak_enabled" value="yes" <?php checked(get_option('gorilla_lr_streak_enabled', 'no'), 'yes'); ?>> Aktif</label>
-                            <p class="description">Musteriler ardisik gunlerde giris yaparak bonus XP kazanir.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Gunluk Giris XP</th>
-                        <td>
-                            <input type="number" name="streak_daily_xp" value="<?php echo esc_attr(get_option('gorilla_lr_streak_daily_xp', 5)); ?>" min="0" max="100" style="width:80px;"> XP
-                            <p class="description">Her gun giris yapan musteriye verilecek XP.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>7 Gun Seri Bonusu</th>
-                        <td>
-                            <input type="number" name="streak_7day_bonus" value="<?php echo esc_attr(get_option('gorilla_lr_streak_7day_bonus', 50)); ?>" min="0" max="500" style="width:80px;"> XP
-                            <p class="description">Ardisik 7 gun giris yapildiginda verilen ekstra bonus XP.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>30 Gun Seri Bonusu</th>
-                        <td>
-                            <input type="number" name="streak_30day_bonus" value="<?php echo esc_attr(get_option('gorilla_lr_streak_30day_bonus', 200)); ?>" min="0" max="1000" style="width:80px;"> XP
-                            <p class="description">Ardisik 30 gun giris yapildiginda verilen ekstra bonus XP.</p>
-                        </td>
-                    </tr>
-                </table>
 
                 <h3 style="margin-top:30px; border-bottom:1px solid #f0f0f0; padding-bottom:10px;">🏅 Rozetler (Badges)</h3>
                 <table class="form-table">

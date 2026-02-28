@@ -183,7 +183,7 @@ function gorilla_lg_rest_get_me(WP_REST_Request $request) {
         'next_tier'       => $next,
         'xp'              => $xp_info,
         'badges'          => (function_exists('gorilla_badge_get_user_badges') && get_option('gorilla_lr_badges_enabled') === 'yes') ? gorilla_badge_get_user_badges($user_id) : null,
-        'streak'          => (get_option('gorilla_lr_streak_enabled') === 'yes') ? intval(get_user_meta($user_id, '_gorilla_login_streak', true)) : null,
+        'streak'          => (get_option('gorilla_lr_streak_enabled') === 'yes' && class_exists('WPGamify_Streak_Manager')) ? intval(WPGamify_Streak_Manager::get_streak($user_id)['current_streak'] ?? 0) : null,
         'spins_available' => (get_option('gorilla_lr_spin_enabled') === 'yes') ? intval(get_user_meta($user_id, '_gorilla_spin_available', true)) : null,
         'programs'        => array(
             'loyalty_enabled' => get_option('gorilla_lr_enabled_loyalty') === 'yes',
@@ -332,10 +332,11 @@ function gorilla_lg_rest_shop_redeem(WP_REST_Request $request) {
 // ── /streak ─────────────────────────────────────────────
 function gorilla_lg_rest_get_streak(WP_REST_Request $request) {
     $user_id = get_current_user_id();
+    $streak_data = class_exists('WPGamify_Streak_Manager') ? WPGamify_Streak_Manager::get_streak($user_id) : array();
     return rest_ensure_response(array(
-        'current_streak' => intval(get_user_meta($user_id, '_gorilla_login_streak', true)),
-        'best_streak'    => intval(get_user_meta($user_id, '_gorilla_login_streak_best', true)),
-        'last_login'     => get_user_meta($user_id, '_gorilla_login_last_date', true) ?: null,
+        'current_streak' => intval($streak_data['current_streak'] ?? 0),
+        'best_streak'    => intval($streak_data['max_streak'] ?? 0),
+        'last_login'     => $streak_data['last_activity_date'] ?? null,
         'enabled'        => get_option('gorilla_lr_streak_enabled') === 'yes',
     ));
 }
@@ -387,13 +388,10 @@ function gorilla_lg_rest_get_settings(WP_REST_Request $request) {
 function gorilla_lg_rest_admin_stats(WP_REST_Request $request) {
     global $wpdb;
 
-    $xp_table = $wpdb->prefix . 'gorilla_xp_log';
-    $total_xp_given = 0;
-    if (function_exists('gorilla_lr_table_exists') && gorilla_lr_table_exists($xp_table)) {
-        $total_xp_given = intval($wpdb->get_var(
-            "SELECT COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) FROM {$xp_table}"
-        ));
-    }
+    $xp_table = $wpdb->prefix . 'gamify_xp_transactions';
+    $total_xp_given = intval($wpdb->get_var(
+        "SELECT COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) FROM {$xp_table}"
+    ));
 
     $total_users = intval($wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->users}"));
 
@@ -436,7 +434,7 @@ function gorilla_lg_rest_admin_get_user(WP_REST_Request $request) {
         'tier'   => $tier,
         'xp'     => $xp,
         'level'  => $level,
-        'streak' => intval(get_user_meta($user_id, '_gorilla_login_streak', true)),
+        'streak' => class_exists('WPGamify_Streak_Manager') ? intval(WPGamify_Streak_Manager::get_streak($user_id)['current_streak'] ?? 0) : 0,
         'badges' => function_exists('gorilla_badge_get_user_badges') ? gorilla_badge_get_user_badges($user_id) : array(),
     ));
 }

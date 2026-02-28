@@ -132,9 +132,10 @@ class Gorilla_LG_CLI {
         $limit   = intval(WP_CLI\Utils\get_flag_value($assoc_args, 'limit', 100));
         $user_id = WP_CLI\Utils\get_flag_value($assoc_args, 'user_id', 0);
 
-        $table = $wpdb->prefix . 'gorilla_xp_log';
-        if (function_exists('gorilla_lr_table_exists') && !gorilla_lr_table_exists($table)) {
-            WP_CLI::error('gorilla_xp_log tablosu bulunamadi.');
+        $table = $wpdb->prefix . 'gamify_xp_transactions';
+        $table_check = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table));
+        if (!$table_check) {
+            WP_CLI::error('gamify_xp_transactions tablosu bulunamadi. WP Gamify aktif mi?');
             return;
         }
 

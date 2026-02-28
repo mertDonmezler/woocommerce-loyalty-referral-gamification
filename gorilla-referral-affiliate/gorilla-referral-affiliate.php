@@ -3,7 +3,7 @@
  * Plugin Name: Gorilla Referral & Affiliate
  * Plugin URI: https://www.gorillacustomcards.com
  * Description: Video referral sistemi ve affiliate link tracking. Gorilla Loyalty & Gamification ve WooCommerce gerektirir.
- * Version: 1.2.0
+ * Version: 2.0.0
  * Author: Mert Donmezler
  * Author URI: https://www.gorillacustomcards.com
  * Text Domain: gorilla-ra
@@ -22,7 +22,7 @@
 if (!defined('ABSPATH')) exit;
 
 // -- Sabitler --
-define('GORILLA_RA_VERSION', '1.2.0');
+define('GORILLA_RA_VERSION', '2.0.0');
 define('GORILLA_RA_FILE', __FILE__);
 define('GORILLA_RA_PATH', plugin_dir_path(__FILE__));
 define('GORILLA_RA_URL', plugin_dir_url(__FILE__));

@@ -42,6 +42,10 @@ class WPGamify_Frontend {
      * Hook'lari otomatik olarak kaydeder.
      */
     public function __construct() {
+        // Gorilla Loyalty handles all frontend UI when active.
+        if ( defined( 'GORILLA_LG_VERSION' ) ) {
+            return;
+        }
         $this->register();
     }
 

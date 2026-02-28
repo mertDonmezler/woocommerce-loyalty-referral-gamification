@@ -1,0 +1,32 @@
+name: WP Gamify Release
+
+on:
+  push:
+    tags:
+      - 'gamify-v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.0'
+
+      - name: PHP Lint
+        run: find wp-gamify -name "*.php" -exec php -l {} \;
+
+      - name: Build ZIP
+        run: |
+          cd wp-gamify
+          zip -r ../wp-gamify.zip . -x "*.git*" "node_modules/*" "tests/*"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: wp-gamify.zip
+          generate_release_notes: true

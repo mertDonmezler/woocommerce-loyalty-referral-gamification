@@ -303,6 +303,92 @@ $campaign = class_exists( 'WPGamify_Campaign_Manager' )
             </table>
         </div>
 
+        <!-- Section: Profil Tamamlama XP -->
+        <div class="wpgamify-settings-section">
+            <h2>Profil Tamamlama XP</h2>
+            <table class="form-table">
+                <tr>
+                    <th scope="row">Durum</th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="wpgamify[profile_xp_enabled]" value="1"
+                                <?php checked( $settings['xp_profile_enabled'] ?? true ); ?>>
+                            Profil tamamlama XP aktif
+                        </label>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">XP Miktari</th>
+                    <td>
+                        <input type="number" name="wpgamify[profile_xp]" min="0"
+                               value="<?php echo esc_attr( $settings['xp_profile_amount'] ?? 20 ); ?>"
+                               class="small-text">
+                        <p class="description">Profil ilk kez tamamlandiginda verilen XP.</p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Section: XP Suresi (Expiry) -->
+        <div class="wpgamify-settings-section">
+            <h2>XP Suresi (Expiry)</h2>
+            <table class="form-table">
+                <tr>
+                    <th scope="row">Durum</th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="wpgamify[xp_expiry_enabled]" value="1"
+                                <?php checked( $settings['xp_expiry_enabled'] ?? false ); ?>>
+                            XP sure dolumu aktif
+                        </label>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">Sure (ay)</th>
+                    <td>
+                        <input type="number" name="wpgamify[xp_expiry_months]" min="1" max="120"
+                               value="<?php echo esc_attr( $settings['xp_expiry_months'] ?? 12 ); ?>"
+                               class="small-text">
+                        <p class="description">Bu sureden eski XP otomatik olarak dusurulur.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">Uyari Suresi (gun)</th>
+                    <td>
+                        <input type="number" name="wpgamify[xp_expiry_warn_days]" min="0" max="90"
+                               value="<?php echo esc_attr( $settings['xp_expiry_warn_days'] ?? 14 ); ?>"
+                               class="small-text">
+                        <p class="description">XP dolmadan kac gun once uyari gonderilsin (0 = uyari yok).</p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Section: Referral/Affiliate XP -->
+        <div class="wpgamify-settings-section">
+            <h2>Referral/Affiliate XP</h2>
+            <table class="form-table">
+                <tr>
+                    <th scope="row">Referral XP</th>
+                    <td>
+                        <input type="number" name="wpgamify[referral_xp]" min="0"
+                               value="<?php echo esc_attr( $settings['xp_referral_amount'] ?? 50 ); ?>"
+                               class="small-text">
+                        <p class="description">Video referans onayi icin verilen XP.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">Affiliate XP</th>
+                    <td>
+                        <input type="number" name="wpgamify[affiliate_xp]" min="0"
+                               value="<?php echo esc_attr( $settings['xp_affiliate_amount'] ?? 30 ); ?>"
+                               class="small-text">
+                        <p class="description">Affiliate satis basina verilen XP.</p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
         <!-- Section: Genel -->
         <div class="wpgamify-settings-section">
             <h2>Genel</h2>
