@@ -238,12 +238,15 @@ add_action( 'plugins_loaded', function (): void {
 /* ─── Cron Handlers ─────────────────────────────────────────────────── */
 
 add_action( 'wpgamify_hourly_cache', function (): void {
-    // Hourly cache maintenance: clear stale transients
     global $wpdb;
+    // Delete expired wpgamify transients (timeout < NOW)
     $wpdb->query( $wpdb->prepare(
-        "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s AND option_name NOT LIKE %s",
-        $wpdb->esc_like( '_transient_wpgamify_' ) . '%',
-        $wpdb->esc_like( '_transient_timeout_wpgamify_' ) . '%'
+        "DELETE a, b FROM {$wpdb->options} a
+         INNER JOIN {$wpdb->options} b ON b.option_name = REPLACE(a.option_name, '_transient_timeout_', '_transient_')
+         WHERE a.option_name LIKE %s
+         AND a.option_value < %d",
+        $wpdb->esc_like( '_transient_timeout_wpgamify_' ) . '%',
+        time()
     ) );
 });
 

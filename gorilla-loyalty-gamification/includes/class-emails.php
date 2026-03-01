@@ -63,7 +63,10 @@ if (!function_exists('gorilla_send_email')) {
             'Content-Type: text/html; charset=UTF-8',
             'From: ' . get_bloginfo('name') . ' <' . get_option('admin_email') . '>',
         );
-        wp_mail($to, $subject, $message, $headers);
+        $sent = wp_mail($to, $subject, $message, $headers);
+        if (!$sent) {
+            error_log('Gorilla LG: Email gonderilemedi - ' . $to);
+        }
     }
 }
 

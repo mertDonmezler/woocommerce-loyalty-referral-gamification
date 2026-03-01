@@ -399,10 +399,10 @@ function gorilla_lg_rest_admin_stats(WP_REST_Request $request) {
 
     $xp_table = $wpdb->prefix . 'gamify_xp_transactions';
     $total_xp_given = intval($wpdb->get_var(
-        "SELECT COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) FROM {$xp_table}"
+        "SELECT COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) FROM `{$xp_table}`"
     ));
 
-    $total_users = intval($wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->users}"));
+    $total_users = intval($wpdb->get_var("SELECT COUNT(*) FROM `{$wpdb->users}`"));
 
     return new WP_REST_Response(array(
         'xp' => array(
@@ -423,7 +423,7 @@ function gorilla_lg_rest_admin_get_user(WP_REST_Request $request) {
 
     $rate_key = 'gorilla_admin_rate_' . get_current_user_id();
     $count = intval(get_transient($rate_key));
-    if ($count > 100) {
+    if ($count >= 100) {
         return new WP_Error('rate_limited', 'Cok fazla istek', array('status' => 429));
     }
     set_transient($rate_key, $count + 1, MINUTE_IN_SECONDS);
@@ -433,11 +433,21 @@ function gorilla_lg_rest_admin_get_user(WP_REST_Request $request) {
     $xp = function_exists('gorilla_xp_get_balance') ? gorilla_xp_get_balance($user_id) : 0;
     $level = function_exists('gorilla_xp_calculate_level') ? gorilla_xp_calculate_level($user_id) : null;
 
+    $email = $user->user_email;
+    $at_pos = strpos($email, '@');
+    if ($at_pos !== false && $at_pos > 0) {
+        $local = substr($email, 0, min(3, $at_pos));
+        $domain = substr($email, $at_pos + 1);
+        $masked_email = $local . '***@' . $domain;
+    } else {
+        $masked_email = '***';
+    }
+
     return new WP_REST_Response(array(
         'user' => array(
             'id'           => $user_id,
             'display_name' => $user->display_name,
-            'email'        => substr($user->user_email, 0, 3) . '***@' . substr(strrchr($user->user_email, '@'), 1),
+            'email'        => $masked_email,
             'registered'   => $user->user_registered,
         ),
         'tier'   => $tier,

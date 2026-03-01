@@ -53,15 +53,19 @@
         card.setAttribute('data-phc-effect', 'cosmos');
         card.setAttribute('data-phc-sparkle', 'true');
 
-        card.innerHTML =
-            '<div class="phc-card__translater"><div class="phc-card__rotator" style="border-radius:16px;">' +
-            '<div class="phc-card__front" style="width:100%;height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:16px;">' +
-            '<div style="font-size:72px;line-height:1;margin-bottom:12px;">' + (emoji || '\uD83C\uDF89') + '</div>' +
-            '<div style="font-size:20px;font-weight:800;color:#fff;text-shadow:0 0 20px rgba(255,255,255,0.5);">' + (label || 'Level Up!') + '</div>' +
-            '</div>' +
-            '<div class="phc-card__shine"></div>' +
-            '<div class="phc-card__glare"></div>' +
-            '</div></div>';
+        var front = document.createElement('div');
+        front.className = 'phc-card__front';
+        front.style.cssText = 'width:100%;height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:16px;';
+        var emojiDiv = document.createElement('div');
+        emojiDiv.style.cssText = 'font-size:72px;line-height:1;margin-bottom:12px;';
+        emojiDiv.textContent = emoji || '\uD83C\uDF89';
+        var labelDiv = document.createElement('div');
+        labelDiv.style.cssText = 'font-size:20px;font-weight:800;color:#fff;text-shadow:0 0 20px rgba(255,255,255,0.5);';
+        labelDiv.textContent = label || 'Level Up!';
+        front.appendChild(emojiDiv);
+        front.appendChild(labelDiv);
+        card.innerHTML = '<div class="phc-card__translater"><div class="phc-card__rotator" style="border-radius:16px;"><div class="phc-card__front-placeholder"></div><div class="phc-card__shine"></div><div class="phc-card__glare"></div></div></div>';
+        card.querySelector('.phc-card__front-placeholder').replaceWith(front);
 
         overlay.appendChild(card);
         document.body.appendChild(overlay);
@@ -91,17 +95,27 @@
         popup.className = 'glr-holo-prize';
         popup.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%) scale(0);z-index:99998;transition:transform 0.6s cubic-bezier(0.34,1.56,0.64,1);';
 
-        popup.innerHTML =
-            '<div class="phc-card phc-effect-galaxy" style="width:160px;" data-phc-effect="galaxy" data-phc-sparkle="true">' +
-            '<div class="phc-card__translater"><div class="phc-card__rotator" style="border-radius:12px;">' +
-            '<div class="phc-card__front" style="width:100%;height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:12px;">' +
-            '<div style="font-size:28px;line-height:1;">\uD83C\uDF81</div>' +
-            '<div style="font-size:12px;font-weight:800;color:#92400e;margin-top:6px;text-align:center;padding:0 8px;">' + (prizeLabel || '') + '</div>' +
-            '</div>' +
-            '<div class="phc-card__shine"></div>' +
-            '<div class="phc-card__glare"></div>' +
-            '</div></div></div>';
+        var card = document.createElement('div');
+        card.className = 'phc-card phc-effect-galaxy';
+        card.style.cssText = 'width:160px;';
+        card.setAttribute('data-phc-effect', 'galaxy');
+        card.setAttribute('data-phc-sparkle', 'true');
 
+        var front = document.createElement('div');
+        front.className = 'phc-card__front';
+        front.style.cssText = 'width:100%;height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:16px;';
+        var prizeEmoji = document.createElement('div');
+        prizeEmoji.style.cssText = 'font-size:72px;line-height:1;margin-bottom:12px;';
+        prizeEmoji.textContent = '\uD83C\uDF81';
+        var prizeDiv = document.createElement('div');
+        prizeDiv.style.cssText = 'font-size:20px;font-weight:800;color:#fff;text-shadow:0 0 20px rgba(255,255,255,0.5);';
+        prizeDiv.textContent = prizeLabel || 'Odul!';
+        front.appendChild(prizeEmoji);
+        front.appendChild(prizeDiv);
+        card.innerHTML = '<div class="phc-card__translater"><div class="phc-card__rotator" style="border-radius:16px;"><div class="phc-card__front-placeholder"></div><div class="phc-card__shine"></div><div class="phc-card__glare"></div></div></div>';
+        card.querySelector('.phc-card__front-placeholder').replaceWith(front);
+
+        popup.appendChild(card);
         document.body.appendChild(popup);
         requestAnimationFrame(function() { popup.style.transform = 'translateX(-50%) scale(1)'; });
         setTimeout(function() {

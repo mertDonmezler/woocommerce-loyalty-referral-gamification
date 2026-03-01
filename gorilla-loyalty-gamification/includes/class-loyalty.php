@@ -258,7 +258,9 @@ add_action('woocommerce_order_status_completed', function($order_id) {
 
         if ($old_tier_key === 'none' || ($old_index !== false && $new_index !== false && $new_index > $old_index)) {
             if (function_exists('gorilla_email_tier_upgrade')) {
-                $old_tier = ($old_tier_key !== 'none' && isset($tiers[$old_tier_key])) ? $tiers[$old_tier_key] : null;
+                $old_tier = ($old_tier_key !== 'none' && isset($tiers[$old_tier_key]))
+                    ? $tiers[$old_tier_key]
+                    : array('label' => 'Baslangic', 'emoji' => '', 'discount' => 0, 'color' => '#999');
                 gorilla_email_tier_upgrade($user_id, $old_tier, $new_tier);
             }
         }
@@ -640,7 +642,7 @@ function gorilla_spin_execute($user_id) {
     switch ($won_prize['type']) {
         case 'xp':
             if (function_exists('gorilla_xp_add')) {
-                gorilla_xp_add($user_id, intval($won_prize['value']), 'Sans carki odulu', 'spin', absint($user_id . time()));
+                gorilla_xp_add($user_id, intval($won_prize['value']), 'Sans carki odulu', 'spin', crc32($user_id . '_spin_' . microtime(true)));
             }
             break;
         case 'credit':
@@ -755,7 +757,7 @@ function gorilla_shop_redeem($user_id, $reward_id) {
         return array('success' => false, 'error' => 'XP sistemi hazir degil');
     }
 
-    $result = gorilla_xp_deduct($user_id, $xp_cost, 'Puan Dukkani: ' . ($reward['label'] ?? ''), 'shop', absint($user_id . time()));
+    $result = gorilla_xp_deduct($user_id, $xp_cost, 'Puan Dukkani: ' . ($reward['label'] ?? ''), 'shop', crc32($user_id . '_shop_' . microtime(true)));
     if ($result === false) {
         $current_xp = gorilla_xp_get_balance($user_id);
         return array('success' => false, 'error' => 'Yetersiz XP (' . $current_xp . '/' . $xp_cost . ')');
@@ -1154,22 +1156,15 @@ function gorilla_transfer_credit_handler() {
                 wp_send_json_error(array('message' => 'Kredi sistemi kulanilamiyor.'));
             }
 
-            // Atomic credit transfer: check balance + deduct + add in a single transaction
-            $wpdb->query('START TRANSACTION');
-            try {
-                $sender_balance = floatval($wpdb->get_var($wpdb->prepare(
-                    "SELECT meta_value FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = '_gorilla_store_credit' FOR UPDATE",
-                    $sender_id
-                )));
-                if ($sender_balance < $amount) {
-                    $wpdb->query('ROLLBACK');
-                    wp_send_json_error(array('message' => sprintf('Yetersiz bakiye. Mevcut: %s TL', number_format_i18n($sender_balance, 2))));
-                }
-                gorilla_credit_adjust($sender_id, -$amount, 'transfer_out', sprintf('Transfer -> %s', $recipient->display_name), $recipient->ID);
-                gorilla_credit_adjust($recipient->ID, $amount, 'transfer_in', sprintf('Transfer <- %s', wp_get_current_user()->display_name), $sender_id);
-                $wpdb->query('COMMIT');
-            } catch (\Throwable $e) {
-                $wpdb->query('ROLLBACK');
+            $sender_balance = gorilla_credit_get_balance($sender_id);
+            if ($sender_balance < $amount) {
+                wp_send_json_error(array('message' => sprintf('Yetersiz bakiye. Mevcut: %s TL', number_format_i18n($sender_balance, 2))));
+            }
+            gorilla_credit_adjust($sender_id, -$amount, 'transfer_out', sprintf('Transfer -> %s', $recipient->display_name), $recipient->ID);
+            $add_result = gorilla_credit_adjust($recipient->ID, $amount, 'transfer_in', sprintf('Transfer <- %s', wp_get_current_user()->display_name), $sender_id);
+            if ($add_result === false) {
+                // Reverse sender deduction
+                gorilla_credit_adjust($sender_id, $amount, 'transfer_reversal', 'Transfer basarisiz - iade', $recipient->ID);
                 wp_send_json_error(array('message' => 'Transfer sirasinda hata olustu. Lutfen tekrar deneyin.'));
             }
         } elseif ($transfer_type === 'xp') {
@@ -1177,25 +1172,15 @@ function gorilla_transfer_credit_handler() {
                 wp_send_json_error(array('message' => 'XP sistemi kulanilamiyor.'));
             }
 
-            // Atomic XP transfer: check balance + deduct + add in a single transaction
-            $level_table = $wpdb->prefix . 'gamify_user_levels';
-            $wpdb->query('START TRANSACTION');
-            try {
-                $sender_xp = intval($wpdb->get_var($wpdb->prepare(
-                    "SELECT total_xp FROM {$level_table} WHERE user_id = %d FOR UPDATE",
-                    $sender_id
-                )));
-                if ($sender_xp < $amount) {
-                    $wpdb->query('ROLLBACK');
-                    wp_send_json_error(array('message' => sprintf('Yetersiz XP. Mevcut: %s', number_format_i18n($sender_xp))));
-                }
-                gorilla_xp_deduct($sender_id, intval($amount), sprintf('Transfer -> %s', $recipient->display_name));
-                gorilla_xp_add($recipient->ID, intval($amount), sprintf('Transfer <- %s', wp_get_current_user()->display_name));
-                $wpdb->query('COMMIT');
-            } catch (\Throwable $e) {
-                $wpdb->query('ROLLBACK');
-                wp_send_json_error(array('message' => 'XP transferi sirasinda hata olustu. Lutfen tekrar deneyin.'));
+            $sender_xp = gorilla_xp_get_balance($sender_id);
+            if ($sender_xp < intval($amount)) {
+                wp_send_json_error(array('message' => sprintf('Yetersiz XP. Mevcut: %s', number_format_i18n($sender_xp))));
             }
+            $deduct_result = gorilla_xp_deduct($sender_id, intval($amount), sprintf('Transfer -> %s', $recipient->display_name));
+            if ($deduct_result === false) {
+                wp_send_json_error(array('message' => 'XP transfer basarisiz.'));
+            }
+            gorilla_xp_add($recipient->ID, intval($amount), sprintf('Transfer <- %s', wp_get_current_user()->display_name));
         } else {
             wp_send_json_error(array('message' => 'Gecersiz transfer tipi.'));
         }

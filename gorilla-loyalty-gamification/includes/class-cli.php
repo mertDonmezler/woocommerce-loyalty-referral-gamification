@@ -34,36 +34,45 @@ class Gorilla_LG_CLI {
             return;
         }
 
-        $user_ids = get_users(array('fields' => 'ID', 'orderby' => 'ID', 'order' => 'ASC'));
-
-        $count   = count($user_ids);
+        $page = 1;
+        $per_page = 500;
         $changed = 0;
+        $count = 0;
 
-        WP_CLI::log(sprintf('%d kullanici kontrol edilecek...', $count));
-        $progress = WP_CLI\Utils\make_progress_bar('Tier hesaplaniyor', $count);
+        while (true) {
+            $batch = get_users(array(
+                'fields'  => 'ID',
+                'orderby' => 'ID',
+                'order'   => 'ASC',
+                'number'  => $per_page,
+                'paged'   => $page,
+            ));
+            if (empty($batch)) break;
 
-        foreach ($user_ids as $user_id) {
-            $old_tier = get_user_meta($user_id, '_gorilla_last_tier', true) ?: 'none';
-            $result   = gorilla_loyalty_calculate_tier($user_id);
-            $new_tier = $result['key'] ?? 'none';
+            foreach ($batch as $user_id) {
+                $old_tier = get_user_meta($user_id, '_gorilla_last_tier', true) ?: 'none';
+                $result   = gorilla_loyalty_calculate_tier($user_id);
+                $new_tier = $result['key'] ?? 'none';
 
-            if ($old_tier !== $new_tier) {
-                $changed++;
-                if ($dry_run) {
-                    WP_CLI::log(sprintf(
-                        '  Kullanici #%d: %s -> %s (harcama: %s)',
-                        $user_id, $old_tier, $new_tier, number_format($result['spending'] ?? 0, 2)
-                    ));
-                } else {
-                    update_user_meta($user_id, '_gorilla_last_tier', $new_tier);
-                    update_user_meta($user_id, '_gorilla_lr_tier_key', $new_tier);
+                if ($old_tier !== $new_tier) {
+                    $changed++;
+                    if ($dry_run) {
+                        WP_CLI::log(sprintf(
+                            '  Kullanici #%d: %s -> %s (harcama: %s)',
+                            $user_id, $old_tier, $new_tier, number_format($result['spending'] ?? 0, 2)
+                        ));
+                    } else {
+                        update_user_meta($user_id, '_gorilla_last_tier', $new_tier);
+                        update_user_meta($user_id, '_gorilla_lr_tier_key', $new_tier);
+                    }
                 }
+
+                $count++;
             }
 
-            $progress->tick();
+            WP_CLI::log(sprintf('Islenen: %d kullanici...', $count));
+            $page++;
         }
-
-        $progress->finish();
 
         if ($dry_run) {
             WP_CLI::success(sprintf('Dry run tamamlandi. %d / %d kullanicida degisiklik tespit edildi.', $changed, $count));

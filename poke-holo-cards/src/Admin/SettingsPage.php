@@ -190,7 +190,7 @@ class SettingsPage {
             wp_die( -1 );
         }
 
-        $raw  = isset( $_POST['settings'] ) ? stripslashes( $_POST['settings'] ) : '';
+        $raw  = isset( $_POST['settings'] ) ? wp_unslash( $_POST['settings'] ) : '';
         $data = json_decode( $raw, true );
         if ( ! is_array( $data ) ) {
             wp_send_json_error( __( 'Invalid JSON', 'poke-holo-cards' ) );

@@ -30,7 +30,7 @@ foreach ($active_plugins as $p) {
 
 // 1. Affiliate clicks tablosunu sil (exclusively RA data)
 $click_table = $wpdb->prefix . 'gorilla_affiliate_clicks';
-$wpdb->query("DROP TABLE IF EXISTS {$click_table}");
+$wpdb->query("DROP TABLE IF EXISTS `" . esc_sql($click_table) . "`");
 
 // 2. Referral custom post type postlarini sil
 $referral_posts = $wpdb->get_col($wpdb->prepare(

@@ -134,8 +134,18 @@
     }
 }
 
-/* Focus visible for accessibility */
-#gorilla_credit_slider:focus-visible {
+/* Focus for accessibility - all browsers */
+#gorilla_credit_slider:focus {
     outline: 3px solid #3b82f6;
     outline-offset: 2px;
+}
+/* Only show on keyboard focus in browsers that support it */
+@supports selector(:focus-visible) {
+    #gorilla_credit_slider:focus {
+        outline: none;
+    }
+    #gorilla_credit_slider:focus-visible {
+        outline: 3px solid #3b82f6;
+        outline-offset: 2px;
+    }
 }

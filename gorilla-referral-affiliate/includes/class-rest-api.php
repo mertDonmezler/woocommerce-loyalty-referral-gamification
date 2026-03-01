@@ -49,7 +49,7 @@ function gorilla_ra_rest_get_referrals(WP_REST_Request $request) {
     $user_id = get_current_user_id();
 
     if (!function_exists('gorilla_referral_get_user_submissions')) {
-        return new WP_Error('not_available', 'Referans sistemi kullanilamiyor.', array('status' => 503));
+        return new WP_Error('not_available', 'Referans sistemi kullanilamiyor.', array('status' => 501));
     }
 
     $submissions = gorilla_referral_get_user_submissions($user_id);
@@ -76,12 +76,12 @@ function gorilla_ra_rest_get_referrals(WP_REST_Request $request) {
         );
     }
 
-    return rest_ensure_response(array(
+    return new WP_REST_Response(array(
         'submissions'    => $formatted,
         'count'          => count($formatted),
         'referral_rate'  => $rate,
         'program_enabled'=> get_option('gorilla_lr_enabled_referral') === 'yes',
-    ));
+    ), 200);
 }
 
 /**
@@ -91,14 +91,14 @@ function gorilla_ra_rest_get_affiliate(WP_REST_Request $request) {
     $user_id = get_current_user_id();
 
     if (!function_exists('gorilla_affiliate_get_user_stats')) {
-        return new WP_Error('not_available', 'Affiliate sistemi kullanilamiyor.', array('status' => 503));
+        return new WP_Error('not_available', 'Affiliate sistemi kullanilamiyor.', array('status' => 501));
     }
 
     $stats = gorilla_affiliate_get_user_stats($user_id);
     $rate = intval(get_option('gorilla_lr_affiliate_rate', 10));
     $cookie_days = intval(get_option('gorilla_lr_affiliate_cookie_days', 30));
 
-    return rest_ensure_response(array(
+    return new WP_REST_Response(array(
         'enabled'      => get_option('gorilla_lr_enabled_affiliate') === 'yes',
         'code'         => $stats['code'] ?? '',
         'link'         => $stats['link'] ?? '',
@@ -110,7 +110,7 @@ function gorilla_ra_rest_get_affiliate(WP_REST_Request $request) {
             'earnings'    => floatval($stats['earnings'] ?? 0),
             'earnings_formatted' => function_exists('wc_price') ? strip_tags(wc_price($stats['earnings'] ?? 0)) : ($stats['earnings'] ?? 0),
         ),
-    ));
+    ), 200);
 }
 
 /**
@@ -120,7 +120,7 @@ function gorilla_ra_rest_get_affiliate_stats(WP_REST_Request $request) {
     $user_id = get_current_user_id();
 
     if (!function_exists('gorilla_affiliate_get_user_stats')) {
-        return new WP_Error('not_available', 'Affiliate sistemi kullanilamiyor.', array('status' => 503));
+        return new WP_Error('not_available', 'Affiliate sistemi kullanilamiyor.', array('status' => 501));
     }
 
     $stats = gorilla_affiliate_get_user_stats($user_id);
@@ -144,7 +144,7 @@ function gorilla_ra_rest_get_affiliate_stats(WP_REST_Request $request) {
     $conversions = intval($stats['conversions'] ?? 0);
     $conversion_rate = $clicks > 0 ? round(($conversions / $clicks) * 100, 1) : 0;
 
-    return rest_ensure_response(array(
+    return new WP_REST_Response(array(
         'code'            => $stats['code'] ?? '',
         'link'            => $stats['link'] ?? '',
         'clicks'          => $clicks,
@@ -153,5 +153,5 @@ function gorilla_ra_rest_get_affiliate_stats(WP_REST_Request $request) {
         'total_earnings'  => floatval($stats['earnings'] ?? 0),
         'total_earnings_formatted' => function_exists('wc_price') ? strip_tags(wc_price($stats['earnings'] ?? 0)) : ($stats['earnings'] ?? 0),
         'recent_earnings' => $formatted_recent,
-    ));
+    ), 200);
 }

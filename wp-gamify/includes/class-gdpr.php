@@ -213,14 +213,17 @@ class WPGamify_GDPR {
         }
 
         $content = '<h2>WP Gamify - Gamification Verileri</h2>
-        <p>Bu eklenti asagidaki kisisel verileri toplar ve isler:</p>
-        <ul>
-        <li><strong>XP Islemleri:</strong> Kazanilan ve harcanan XP miktarlari, kaynagi ve tarihi.</li>
-        <li><strong>Seviye Bilgisi:</strong> Mevcut seviye, toplam XP ve son aktivite tarihi.</li>
-        <li><strong>Giris Serisi:</strong> Ardisik giris gunleri ve en iyi seri kaydi.</li>
-        <li><strong>Dogum Gunu:</strong> Ay ve gun bilgisi (yalnizca dogum gunu odulu icin).</li>
-        </ul>
-        <p>Bu veriler GDPR kapsaminda export ve silme talebine tabidir.</p>';
+<p>Bu eklenti asagidaki kisisel verileri toplar ve isler:</p>
+<ul>
+<li><strong>XP Islemleri:</strong> Kazanilan ve harcanan XP miktarlari, kaynagi ve tarihi.</li>
+<li><strong>Seviye Bilgisi:</strong> Mevcut seviye, toplam XP ve son aktivite tarihi.</li>
+<li><strong>Giris Serisi:</strong> Ardisik giris gunleri ve en iyi seri kaydi.</li>
+<li><strong>Dogum Gunu:</strong> Ay ve gun bilgisi (yalnizca dogum gunu odulu icin).</li>
+<li><strong>Yildonumu:</strong> Kayit yildonumu XP odulleri kaydedilir.</li>
+<li><strong>XP Suresi:</strong> XP puanlarinin son kullanma tarihi ve uyari bilgileri.</li>
+<li><strong>Guvenlik:</strong> Suistimal tespiti icin IP adresi ve suphe skoru kaydedilir.</li>
+</ul>
+<p>Bu veriler GDPR kapsaminda export ve silme talebine tabidir.</p>';
 
         wp_add_privacy_policy_content( 'WP Gamify', $content );
     }

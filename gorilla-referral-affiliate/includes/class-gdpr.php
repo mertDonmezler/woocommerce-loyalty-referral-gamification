@@ -210,15 +210,13 @@ add_action('admin_init', function() {
 
     $content = '
 <h3>Gorilla Referral & Affiliate Programi</h3>
-
 <p>Sitemizde referans ve affiliate programi kapsaminda asagidaki kisisel verileriniz islenmektedir:</p>
-
 <ul>
 <li><strong>Referans Basvurulari:</strong> Video referans basvurulariniz (video URL, platform bilgisi, siparis detaylari) kayit altina alinir.</li>
 <li><strong>Affiliate Bilgileri:</strong> Affiliate kodunuz, link tiklamalari ve komisyon kazanclariniz saklanir.</li>
 <li><strong>IP Adresi:</strong> Affiliate link tiklamalarinda spam onleme amaciyla IP adresiniz kaydedilir.</li>
+<li><strong>Dolandiricilik Tespiti:</strong> Affiliate programi butunlugu icin otomatik dolandiricilik risk skoru hesaplanir ve kaydedilir.</li>
 </ul>
-
 <p>Bu veriler, referans ve affiliate programi hizmetlerinin sunulmasi ve programin isletilmesi amaciyla islenmektedir. Kisisel verilerinizin silinmesini veya disa aktarilmasini WordPress gizlilik araclari uzerinden talep edebilirsiniz.</p>
 ';
 

@@ -728,7 +728,9 @@ add_action('wp_ajax_gorilla_tier_simulate', function() {
     }
 
     // Count total customers
-    $total_users = count(get_users(array('role' => 'customer', 'fields' => 'ID')));
+    $total_users = intval($wpdb->get_var(
+        "SELECT COUNT(*) FROM {$wpdb->usermeta} WHERE meta_key = '{$wpdb->prefix}capabilities' AND meta_value LIKE '%\"customer\"%'"
+    ));
 
     // Distribute users into tiers
     $distribution = array();

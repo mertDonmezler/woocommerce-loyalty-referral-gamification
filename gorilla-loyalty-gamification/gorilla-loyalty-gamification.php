@@ -275,7 +275,7 @@ add_action('wp_enqueue_scripts', function() {
 
     // Loyalty-specific styles & scripts (depend on base)
     wp_enqueue_style('gorilla-lg-frontend', GORILLA_LG_URL . 'assets/css/loyalty.css', array('gorilla-base'), GORILLA_LG_VERSION);
-    wp_enqueue_script('gorilla-lg-frontend', GORILLA_LG_URL . 'assets/js/loyalty.js', array('jquery', 'gorilla-base'), GORILLA_LG_VERSION, true);
+    wp_enqueue_script('gorilla-lg-frontend', GORILLA_LG_URL . 'assets/js/loyalty.js', array('gorilla-base'), GORILLA_LG_VERSION, true);
 
     $loyalty_url = function_exists('wc_get_account_endpoint_url') ? wc_get_account_endpoint_url('gorilla-loyalty') : '';
 
@@ -439,7 +439,8 @@ function gorilla_smart_coupon_check() {
              AND status IN ('wc-completed', 'wc-processing')
              AND customer_id > 0
              GROUP BY customer_id
-             HAVING last_order < %s AND last_order >= %s",
+             HAVING last_order < %s AND last_order >= %s
+             LIMIT 1000",
             $cutoff_date, $churn_cutoff
         ));
     } else {
@@ -451,7 +452,8 @@ function gorilla_smart_coupon_check() {
              AND p.post_status IN ('wc-completed', 'wc-processing')
              AND pm.meta_value > 0
              GROUP BY pm.meta_value
-             HAVING last_order < %s AND last_order >= %s",
+             HAVING last_order < %s AND last_order >= %s
+             LIMIT 1000",
             $cutoff_date, $churn_cutoff
         ));
     }
@@ -569,9 +571,9 @@ function gorilla_meta_cleanup() {
     }
 
     // 2. Transfer daily keys: _gorilla_transfer_today_{YYYY-MM-DD}, _gorilla_transfer_total_{YYYY-MM-DD}
-    foreach (array('_gorilla\_transfer\_today\_%', '_gorilla\_transfer\_total\_%') as $pattern) {
+    foreach (array('_gorilla_transfer_today_%', '_gorilla_transfer_total_%') as $pattern) {
         $keys = $wpdb->get_col(
-            $wpdb->prepare("SELECT DISTINCT meta_key FROM {$wpdb->usermeta} WHERE meta_key LIKE %s", str_replace('\\', '', $pattern))
+            $wpdb->prepare("SELECT DISTINCT meta_key FROM {$wpdb->usermeta} WHERE meta_key LIKE %s", $pattern)
         );
         $old_keys = array();
         foreach ($keys as $key) {
@@ -767,12 +769,15 @@ add_action('wp_footer', function() {
     if (!is_array($events) || empty($events)) return;
     $show = array_slice($events, 0, 5);
     $json_events = wp_json_encode(array_map(function($e) {
-        return array('text' => $e['text'], 'ago' => human_time_diff($e['time'], time()) . ' once');
+        return array(
+            'text' => wp_strip_all_tags($e['text']),
+            'ago'  => human_time_diff($e['time'], time()) . ' once',
+        );
     }, $show));
     ?>
     <style>#gorilla-social-proof{position:fixed;bottom:20px;left:20px;z-index:9998;pointer-events:none}#gorilla-social-proof .gsp-toast{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.12);padding:12px 18px;max-width:320px;font-size:13px;color:#1f2937;opacity:0;transform:translateY(20px);transition:all .4s ease;pointer-events:auto}#gorilla-social-proof .gsp-toast.gsp-show{opacity:1;transform:translateY(0)}#gorilla-social-proof .gsp-time{font-size:11px;color:#9ca3af;margin-top:2px}</style>
     <div id="gorilla-social-proof"></div>
-    <script>!function(){var e=<?php echo $json_events; ?>;if(e&&e.length){var c=document.getElementById("gorilla-social-proof");if(c){var i=0;function n(){if(i>=e.length)i=0;var t=e[i++],o=document.createElement("div");o.className="gsp-toast";o.innerHTML='<div>\xF0\x9F\x94\x94 '+t.text+'</div><div class="gsp-time">'+t.ago+"</div>";c.appendChild(o);o.offsetHeight;o.classList.add("gsp-show");setTimeout(function(){o.classList.remove("gsp-show");setTimeout(function(){o.remove()},400)},5e3)}setTimeout(function(){n();setInterval(n,8e3)},3e3)}}}();</script>
+    <script>!function(){var e=<?php echo $json_events; ?>;if(e&&e.length){var c=document.getElementById("gorilla-social-proof");if(c){var i=0;function n(){if(i>=e.length)i=0;var t=e[i++],o=document.createElement("div");o.className="gsp-toast";var textDiv=document.createElement("div");textDiv.textContent='\xF0\x9F\x94\x94 '+t.text;var timeDiv=document.createElement("div");timeDiv.className="gsp-time";timeDiv.textContent=t.ago;o.appendChild(textDiv);o.appendChild(timeDiv);c.appendChild(o);o.offsetHeight;o.classList.add("gsp-show");setTimeout(function(){o.classList.remove("gsp-show");setTimeout(function(){o.remove()},400)},5e3)}setTimeout(function(){n();setInterval(n,8e3)},3e3)}}}();</script>
     <?php
 }, 100);
 
@@ -796,13 +801,13 @@ add_action('gorilla_referral_approved', function($user_id, $ref_id) {
 }, 10, 2);
 
 // Affiliate sale -> WP Gamify XP (amount from WP Gamify settings)
-add_action('gorilla_affiliate_sale', function($user_id, $order_id) {
+add_action('gorilla_affiliate_sale', function($user_id, $order_id, $commission) {
     if (!class_exists('WPGamify_Settings') || !function_exists('gorilla_xp_add')) return;
     // Prevent double XP if both primary and recurring commission fire for same order.
     if (function_exists('gorilla_xp_has_been_awarded') && gorilla_xp_has_been_awarded($user_id, 'affiliate', $order_id)) return;
     $xp = (int) WPGamify_Settings::get('xp_affiliate_amount', 30);
     if ($xp > 0) gorilla_xp_add($user_id, $xp, sprintf('Affiliate satis #%d', $order_id), 'affiliate', $order_id);
-}, 10, 2);
+}, 10, 3);
 
 // ── WP Gamify Source Labels ──────────────────────────────
 add_filter('gamify_source_labels', function($labels) {
@@ -845,7 +850,8 @@ add_action('gamify_after_xp_awarded', function($user_id, $amount, $source, $sour
 // XP expiry warning -> email
 add_action('gamify_xp_expiry_warning', function($user_id, $expiring_xp, $expiry_date) {
     if (function_exists('gorilla_email_xp_expiry_warning')) {
-        gorilla_email_xp_expiry_warning($user_id, $expiring_xp, $expiry_date);
+        $days_remaining = max(0, intval(ceil((strtotime($expiry_date) - time()) / DAY_IN_SECONDS)));
+        gorilla_email_xp_expiry_warning($user_id, $expiring_xp, $days_remaining);
     }
 }, 10, 3);
 

@@ -30,14 +30,14 @@ foreach ($active_plugins as $p) {
 // Drop legacy XP log table if migration to WP Gamify is confirmed.
 if (get_option('_gorilla_migrated_to_gamify')) {
     $xp_table = $wpdb->prefix . 'gorilla_xp_log';
-    $wpdb->query("DROP TABLE IF EXISTS {$xp_table}");
+    $wpdb->query("DROP TABLE IF EXISTS `" . esc_sql($xp_table) . "`");
 }
 
 // Drop credit_log table only if RA plugin is not active.
 // RA uses this table for affiliate commission logging.
 if (!$ra_active) {
     $credit_table = $wpdb->prefix . 'gorilla_credit_log';
-    $wpdb->query("DROP TABLE IF EXISTS {$credit_table}");
+    $wpdb->query("DROP TABLE IF EXISTS `" . esc_sql($credit_table) . "`");
 }
 
 // Remove all loyalty/gamification options

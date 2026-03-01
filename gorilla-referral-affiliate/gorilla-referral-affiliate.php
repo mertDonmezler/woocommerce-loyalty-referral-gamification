@@ -120,7 +120,7 @@ add_action('plugins_loaded', function() {
 }, 20);
 
 // -- Aktivasyon --
-register_activation_hook(__FILE__, function() {
+function gorilla_ra_activate_single() {
     // Varsayilan ayarlari olustur
     $defaults = array(
         'gorilla_lr_enabled_referral'               => 'yes',
@@ -187,11 +187,33 @@ register_activation_hook(__FILE__, function() {
 
     // Rewrite flush
     update_option('gorilla_ra_flush_needed', 'yes');
+}
+
+register_activation_hook(__FILE__, function($network_wide = false) {
+    if (is_multisite() && $network_wide) {
+        $sites = get_sites(array('fields' => 'ids', 'number' => 1000));
+        foreach ($sites as $site_id) {
+            switch_to_blog($site_id);
+            gorilla_ra_activate_single();
+            restore_current_blog();
+        }
+    } else {
+        gorilla_ra_activate_single();
+    }
 });
 
 // -- Deaktivasyon --
-register_deactivation_hook(__FILE__, function() {
-    flush_rewrite_rules();
+register_deactivation_hook(__FILE__, function($network_wide = false) {
+    if (is_multisite() && $network_wide) {
+        $sites = get_sites(array('fields' => 'ids', 'number' => 1000));
+        foreach ($sites as $site_id) {
+            switch_to_blog($site_id);
+            flush_rewrite_rules();
+            restore_current_blog();
+        }
+    } else {
+        flush_rewrite_rules();
+    }
 });
 
 // -- Permalink Flush --

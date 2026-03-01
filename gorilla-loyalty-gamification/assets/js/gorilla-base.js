@@ -27,6 +27,7 @@
         toast.className = 'gorilla-toast ' + type;
         toast.setAttribute('role', 'alert');
         toast.setAttribute('aria-live', 'assertive');
+        toast.setAttribute('aria-atomic', 'true');
         var content = document.createElement('div');
         content.className = 'gorilla-toast-content';
         var msgSpan = document.createElement('span');
