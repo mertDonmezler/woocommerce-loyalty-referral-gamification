@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell:*)",
+      "Bash(where:*)",
+      "Bash(where \"C:\\\\Program Files\\\\7-Zip\\\\7z.exe\")",
+      "WebSearch",
+      "Bash(if exist gorilla-loyalty-referral-v3.0.1.zip del gorilla-loyalty-referral-v3.0.1.zip)",
+      "Bash(gh auth status:*)",
+      "Bash(git --version)",
+      "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" auth status)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: WooCommerce Loyalty, Referral & Gamification Suite v3.0.1\n\nComplete loyalty ecosystem with 13+ features:\n- 6-tier loyalty with automatic discounts\n- XP engine, levels, badges, leaderboard, spin wheel\n- Video referral system with dual-sided rewards\n- Affiliate tracking with tiered & recurring commissions\n- Points shop, login streaks, birthday rewards, milestones\n- 18 REST API endpoints, 11 email templates, GDPR compliance\n- 73 security & quality fixes \\(atomic guards, XSS prevention\\)\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" repo create woocommerce-loyalty-referral-gamification --public --description \"The most complete WooCommerce loyalty ecosystem. 6-tier loyalty, XP gamification, video referrals, affiliate tracking, spin wheel, badges, leaderboard, and 13+ engagement features. Security-hardened with 73 fixes.\" --source \"C:\\\\Users\\\\dell\\\\Desktop\\\\gorilla-loyalty-referral-v2\" --remote origin --push)",
+      "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" repo edit:*)",
+      "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" repo view mertDonmezler/woocommerce-loyalty-referral-gamification)",
+      "Bash(grep:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "WebFetch(domain:poke-holo.simey.me)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" api repos/simeydotme/pokemon-cards-css/git/trees/main?recursive=1 --jq \".tree[].path\")",
+      "Bash(node --check:*)",
+      "Bash(dir:*)",
+      "Bash(find:*)",
+      "Bash(wc:*)",
+      "Bash(php:*)",
+      "Bash(ls -la \"C:\\\\Users\\\\dell\\\\Desktop\\\\gorilla-loyalty-referral-v2\\\\gorilla-loyalty-referral\\\\languages\"\" 2>/dev/null && wc -l \"C:UsersdellDesktopgorilla-loyalty-referral-v2gorilla-loyalty-referrallanguagesgorilla-lr.pot\" 2>/dev/null || echo \"NO_FILE \")",
+      "Bash(ls:*)",
+      "Bash(gh run:*)",
+      "Bash(gh release:*)",
+      "Bash(mkdir:*)",
+      "Bash(unzip -l loyalty/gorilla-loyalty-gamification-v1.0.0.zip)",
+      "Bash(unzip:*)",
+      "Bash(git:*)",
+      "Bash(rm:*)",
+      "Bash(do php:*)",
+      "Bash(echo EXIT:$?:*)"
+    ]
+  }
+}
