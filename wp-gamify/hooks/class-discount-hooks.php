@@ -72,6 +72,13 @@ class WPGamify_Discount_Hooks {
             return;
         }
 
+        // C9 FIX: Prevent double discount when Gorilla Loyalty tier discount
+        // is already applied. Both plugins use woocommerce_cart_calculate_fees;
+        // the global flag ensures only one percentage discount is applied.
+        if ( ! empty( $GLOBALS['gorilla_discount_applied'] ) ) {
+            return;
+        }
+
         $user_id = get_current_user_id();
 
         if ( $user_id <= 0 ) {
@@ -136,6 +143,9 @@ class WPGamify_Discount_Hooks {
         }
 
         $cart->add_fee( $label, -$discount_amount, true );
+
+        // C9 FIX: Set global flag so Gorilla Loyalty tier discount won't stack.
+        $GLOBALS['gorilla_discount_applied'] = true;
     }
 
     /**

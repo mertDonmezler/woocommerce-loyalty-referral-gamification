@@ -85,7 +85,19 @@ class WPGamify_Order_Hooks {
             return;
         }
 
-        // Idempotency korumasi: bu siparis icin daha once XP verildiyse atla.
+        // Atomic lock: INSERT IGNORE prevents concurrent webhook calls from double-awarding.
+        global $wpdb;
+        $lock_key    = '_wpgamify_order_xp_lock_' . $order_id;
+        $lock_result = $wpdb->query( $wpdb->prepare(
+            "INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'no')",
+            $lock_key,
+            current_time( 'mysql' )
+        ) );
+        if ( ! $lock_result ) {
+            return; // Another request already claimed this order.
+        }
+
+        // Secondary idempotency korumasi: bu siparis icin daha once XP verildiyse atla.
         $already_awarded = $order->get_meta( self::META_XP_AWARDED );
 
         if ( $already_awarded !== '' && $already_awarded !== false ) {

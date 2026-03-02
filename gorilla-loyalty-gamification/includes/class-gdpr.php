@@ -149,23 +149,49 @@ function gorilla_lg_gdpr_export_data($email_address, $page = 1) {
         );
     }
 
-    // Credit log
+    // Credit log (paginated - GDPR requires ALL data)
     $credit_table = $wpdb->prefix . 'gorilla_credit_log';
     if (function_exists('gorilla_lr_table_exists') && gorilla_lr_table_exists($credit_table)) {
-        $credit_logs = $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM {$credit_table} WHERE user_id = %d ORDER BY created_at DESC LIMIT 100",
+        $cl_batch = 100;
+        $cl_offset = 0;
+        do {
+            $credit_logs = $wpdb->get_results($wpdb->prepare(
+                "SELECT * FROM {$credit_table} WHERE user_id = %d ORDER BY created_at DESC LIMIT %d OFFSET %d",
+                $user_id, $cl_batch, $cl_offset
+            ));
+            foreach ($credit_logs as $clog) {
+                $export_items[] = array(
+                    'group_id'    => 'gorilla-credit-log',
+                    'group_label' => 'Store Credit Islem Gecmisi',
+                    'item_id'     => 'credit-log-' . $clog->id,
+                    'data'        => array(
+                        array('name' => 'Tarih',    'value' => $clog->created_at),
+                        array('name' => 'Tutar',    'value' => number_format(floatval($clog->amount), 2) . ' TL'),
+                        array('name' => 'Tur',      'value' => $clog->type),
+                        array('name' => 'Aciklama', 'value' => $clog->reason),
+                    ),
+                );
+            }
+            $cl_offset += $cl_batch;
+        } while (count($credit_logs) === $cl_batch);
+    }
+
+    // Affiliate clicks
+    $clicks_table = $wpdb->prefix . 'gorilla_affiliate_clicks';
+    if (function_exists('gorilla_lr_table_exists') && gorilla_lr_table_exists($clicks_table)) {
+        $clicks = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$clicks_table} WHERE user_id = %d ORDER BY created_at DESC",
             $user_id
         ));
-        foreach ($credit_logs as $clog) {
+        foreach ($clicks as $click) {
             $export_items[] = array(
-                'group_id'    => 'gorilla-credit-log',
-                'group_label' => 'Store Credit Islem Gecmisi',
-                'item_id'     => 'credit-log-' . $clog->id,
+                'group_id'    => 'gorilla-affiliate-clicks',
+                'group_label' => 'Affiliate Tiklama Gecmisi',
+                'item_id'     => 'affiliate-click-' . ($click->id ?? 0),
                 'data'        => array(
-                    array('name' => 'Tarih',    'value' => $clog->created_at),
-                    array('name' => 'Tutar',    'value' => number_format(floatval($clog->amount), 2) . ' TL'),
-                    array('name' => 'Tur',      'value' => $clog->type),
-                    array('name' => 'Aciklama', 'value' => $clog->reason),
+                    array('name' => 'IP Adresi', 'value' => $click->ip_address ?? ''),
+                    array('name' => 'URL',       'value' => $click->url ?? ''),
+                    array('name' => 'Tarih',     'value' => $click->created_at ?? ''),
                 ),
             );
         }
@@ -240,13 +266,15 @@ function gorilla_lg_gdpr_export_data($email_address, $page = 1) {
     // Tier tracking
     $tier_key = get_user_meta($user_id, '_gorilla_lr_tier_key', true);
     $grace_until = get_user_meta($user_id, '_gorilla_tier_grace_until', true);
-    if ($tier_key || $grace_until) {
+    $grace_from = get_user_meta($user_id, '_gorilla_tier_grace_from', true);
+    if ($tier_key || $grace_until || $grace_from) {
         $export_items[] = array(
             'group_id'    => 'gorilla-loyalty',
             'group_label' => 'Gorilla Loyalty',
             'item_id'     => 'gorilla-tier-tracking',
             'data'        => array(
                 array('name' => __('Tier Key', 'gorilla-loyalty'), 'value' => $tier_key ?: 'none'),
+                array('name' => __('Grace Period From', 'gorilla-loyalty'), 'value' => $grace_from ?: '-'),
                 array('name' => __('Grace Period Until', 'gorilla-loyalty'), 'value' => $grace_until ?: '-'),
             ),
         );
@@ -391,6 +419,13 @@ function gorilla_lg_gdpr_erase_data($email_address, $page = 1) {
     if (function_exists('gorilla_lr_table_exists') && gorilla_lr_table_exists($credit_table)) {
         $credit_deleted = $wpdb->delete($credit_table, array('user_id' => $user_id), array('%d'));
         if ($credit_deleted) $items_removed += $credit_deleted;
+    }
+
+    // Affiliate clicks
+    $clicks_table = $wpdb->prefix . 'gorilla_affiliate_clicks';
+    if (function_exists('gorilla_lr_table_exists') && gorilla_lr_table_exists($clicks_table)) {
+        $clicks_deleted = $wpdb->delete($clicks_table, array('user_id' => $user_id), array('%d'));
+        if ($clicks_deleted) $items_removed += $clicks_deleted;
     }
 
     // Legacy credit log meta

@@ -15,18 +15,27 @@ if (!defined('ABSPATH')) exit;
 function gorilla_sms_encrypt($value) {
     if (empty($value)) return '';
     $key = substr(hash('sha256', wp_salt('auth')), 0, 32);
-    $iv = substr(hash('sha256', wp_salt('secure_auth')), 0, 16);
+    $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-cbc'));
     $encrypted = openssl_encrypt($value, 'AES-256-CBC', $key, 0, $iv);
-    return base64_encode($encrypted);
+    return base64_encode($iv . '::' . $encrypted);
 }
 
 function gorilla_sms_decrypt($value) {
     if (empty($value)) return '';
     $key = substr(hash('sha256', wp_salt('auth')), 0, 32);
-    $iv = substr(hash('sha256', wp_salt('secure_auth')), 0, 16);
     $decoded = base64_decode($value);
     if ($decoded === false) return $value; // Not encrypted, return as-is (migration)
-    $decrypted = openssl_decrypt($decoded, 'AES-256-CBC', $key, 0, $iv);
+
+    // New format: random IV prepended with '::' separator
+    if (strpos($decoded, '::') !== false) {
+        list($iv, $encrypted) = explode('::', $decoded, 2);
+        $decrypted = openssl_decrypt($encrypted, 'AES-256-CBC', $key, 0, $iv);
+        if ($decrypted !== false) return $decrypted;
+    }
+
+    // Legacy fallback: deterministic IV from salt (for previously encrypted values)
+    $legacy_iv = substr(hash('sha256', wp_salt('secure_auth')), 0, 16);
+    $decrypted = openssl_decrypt($decoded, 'AES-256-CBC', $key, 0, $legacy_iv);
     return $decrypted !== false ? $decrypted : $value;
 }
 
@@ -148,8 +157,9 @@ add_action('gorilla_xp_level_up', function($user_id, $old_level, $new_level) {
     gorilla_sms_notify($user_id, $msg);
 }, 10, 3);
 
-add_action('gorilla_credit_added', function($user_id, $amount, $reason) {
+add_action('gorilla_credit_adjusted', function($user_id, $amount, $reason) {
     if (!gorilla_sms_event_enabled('credit_earned')) return;
+    if ($amount <= 0) return; // Don't notify on deductions
 
     $msg = sprintf(
         'Hesabiniza %s TL store credit eklendi! Sebep: %s',

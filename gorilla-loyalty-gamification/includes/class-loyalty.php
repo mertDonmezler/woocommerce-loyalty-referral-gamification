@@ -29,8 +29,8 @@ function gorilla_loyalty_get_spending($user_id) {
 
         $use_hpos = false;
         if (class_exists('Automattic\\WooCommerce\\Utilities\\OrderUtil')) {
-            if (method_exists('Automattic\\WooCommerce\\Utilities\\OrderUtil', 'custom_orders_table_enabled')) {
-                $use_hpos = \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_enabled();
+            if (method_exists('Automattic\\WooCommerce\\Utilities\\OrderUtil', 'custom_orders_table_usage_is_enabled')) {
+                $use_hpos = \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled();
             }
         }
 
@@ -209,6 +209,22 @@ function gorilla_loyalty_apply_cart_discount($cart) {
     if (!$cart || !is_object($cart)) return;
     if (get_option('gorilla_lr_enabled_loyalty') !== 'yes') return;
 
+    // C9 FIX: Prevent double discount when WP Gamify level discount is also active.
+    // Both plugins hook into woocommerce_cart_calculate_fees. Use a global flag
+    // so whichever fires first wins, preventing stacked percentage discounts.
+    if (!empty($GLOBALS['gorilla_discount_applied'])) {
+        return;
+    }
+
+    // Also check if WP Gamify already added its level discount fee to the cart.
+    if (is_object($cart) && method_exists($cart, 'get_fees')) {
+        foreach ($cart->get_fees() as $fee) {
+            if (isset($fee->id) && $fee->id === 'wpgamify_level_discount') {
+                return;
+            }
+        }
+    }
+
     try {
         $user_id = get_current_user_id();
         $tier = gorilla_loyalty_calculate_tier($user_id);
@@ -225,6 +241,9 @@ function gorilla_loyalty_apply_cart_discount($cart) {
                 $tier['discount'] ?? 0
             );
             $cart->add_fee($label, -$discount_amount, true);
+
+            // Set global flag so WP Gamify (or any other plugin) won't stack another discount.
+            $GLOBALS['gorilla_discount_applied'] = true;
         }
     } catch (\Throwable $e) {
         if (defined('WP_DEBUG') && WP_DEBUG) {
@@ -257,12 +276,13 @@ add_action('woocommerce_order_status_completed', function($order_id) {
         $new_index = array_search($new_tier_key, $tier_keys);
 
         if ($old_tier_key === 'none' || ($old_index !== false && $new_index !== false && $new_index > $old_index)) {
+            $old_tier = ($old_tier_key !== 'none' && isset($tiers[$old_tier_key]))
+                ? $tiers[$old_tier_key]
+                : array('label' => 'Baslangic', 'emoji' => '', 'discount' => 0, 'color' => '#999');
             if (function_exists('gorilla_email_tier_upgrade')) {
-                $old_tier = ($old_tier_key !== 'none' && isset($tiers[$old_tier_key]))
-                    ? $tiers[$old_tier_key]
-                    : array('label' => 'Baslangic', 'emoji' => '', 'discount' => 0, 'color' => '#999');
                 gorilla_email_tier_upgrade($user_id, $old_tier, $new_tier);
             }
+            do_action('gorilla_tier_upgraded', $user_id, $old_tier, $new_tier);
         }
     }
 
@@ -436,8 +456,23 @@ function gorilla_badge_check_all($user_id) {
     if (get_option('gorilla_lr_badges_enabled', 'no') !== 'yes') return;
     if (!$user_id) return;
 
-    $earned      = get_user_meta($user_id, '_gorilla_badges', true);
+    // C16 FIX: Static per-request cache so any direct calls to this
+    // function (outside the gorilla_badge_check_on_order wrapper) for
+    // the same user_id within the same PHP execution are short-circuited
+    // after the first run, eliminating redundant DB round-trips.
+    static $evaluated = array();
+    if (isset($evaluated[$user_id])) return;
+    $evaluated[$user_id] = true;
+
+    // C16 FIX: Batch-load all user meta in a single DB query.  WordPress
+    // populates its internal user_meta object cache for this user_id, so
+    // every subsequent get_user_meta() call in this function is served
+    // from memory (no additional queries needed).
+    $all_meta   = get_user_meta($user_id);
+    $earned_raw = $all_meta['_gorilla_badges'][0] ?? '';
+    $earned     = is_array($earned_raw) ? $earned_raw : (maybe_unserialize($earned_raw) ?: array());
     if (!is_array($earned)) $earned = array();
+
     $definitions = gorilla_badge_get_definitions();
 
     $award_tiered = function($badge_id, $value) use ($definitions, $user_id) {
@@ -450,13 +485,16 @@ function gorilla_badge_check_all($user_id) {
         if ($best) gorilla_badge_award($user_id, $badge_id, $best);
     };
 
+    // Order count - ids-only WooCommerce query, no object hydration.
     $order_count = count(wc_get_orders(array('customer_id' => $user_id, 'status' => array('completed', 'processing'), 'limit' => 51, 'return' => 'ids')) ?: array());
     if (!isset($earned['first_purchase']) && $order_count > 0) gorilla_badge_award($user_id, 'first_purchase');
     if ($order_count > 0) $award_tiered('10_orders', $order_count);
 
+    // Referral count - ids only to minimise data transfer.
     $ref_count = count(get_posts(array('post_type' => 'gorilla_referral', 'post_status' => 'grla_approved', 'meta_key' => '_ref_user_id', 'meta_value' => $user_id, 'numberposts' => 26, 'fields' => 'ids')) ?: array());
     if ($ref_count > 0) $award_tiered('5_referrals', $ref_count);
 
+    // Review count - raw SQL COUNT, no object hydration overhead.
     global $wpdb;
     $review_count = intval($wpdb->get_var($wpdb->prepare(
         "SELECT COUNT(*) FROM {$wpdb->comments} WHERE user_id = %d AND comment_type = 'review' AND comment_approved = '1'",
@@ -464,43 +502,69 @@ function gorilla_badge_check_all($user_id) {
     )));
     if ($review_count > 0) $award_tiered('10_reviews', $review_count);
 
+    // Social shares - served from the already-loaded user meta cache.
     if (!isset($earned['social_butterfly'])) {
-        $shares = get_user_meta($user_id, '_gorilla_social_shares', true);
+        $shares = isset($all_meta['_gorilla_social_shares'][0])
+            ? maybe_unserialize($all_meta['_gorilla_social_shares'][0])
+            : array();
         if (is_array($shares) && count($shares) >= 3) gorilla_badge_award($user_id, 'social_butterfly');
     }
 
+    // VIP tier - gorilla_loyalty_calculate_tier has its own static cache.
     if (!isset($earned['vip_tier'])) {
         $tier = gorilla_loyalty_calculate_tier($user_id);
         if (in_array($tier['key'] ?? '', array('diamond', 'platinum'))) gorilla_badge_award($user_id, 'vip_tier');
     }
 
+    // Spending - gorilla_loyalty_get_spending has its own user-meta cache.
     $spending = gorilla_loyalty_get_spending($user_id);
     if ($spending > 0) $award_tiered('big_spender', $spending);
 
+    // Birthday - served from the already-loaded user meta cache.
     if (!isset($earned['birthday_club'])) {
-        if (get_user_meta($user_id, '_gorilla_birthday', true)) gorilla_badge_award($user_id, 'birthday_club');
+        if (!empty($all_meta['_gorilla_birthday'][0])) gorilla_badge_award($user_id, 'birthday_club');
     }
 
-    // Streak badge (data from WP Gamify)
+    // Streak badge (data from WP Gamify).
     if (class_exists('WPGamify_Streak_Manager')) {
         $streak_data = WPGamify_Streak_Manager::get_streak($user_id);
-        $max_streak = intval($streak_data['max_streak'] ?? 0);
+        $max_streak  = intval($streak_data['max_streak'] ?? 0);
         if ($max_streak > 0) $award_tiered('streak_master', $max_streak);
     }
 }
 
-add_action('woocommerce_order_status_completed', function($order_id) {
-    $order = wc_get_order($order_id);
-    if ($order && $order->get_customer_id()) {
-        gorilla_badge_check_all($order->get_customer_id());
+// FIX: Badge check was hooked on both 'processing' and 'completed', causing
+// double-fire when an order transitions processing -> completed. Now we hook
+// both but use a static guard + order meta to ensure each order triggers badge
+// evaluation only once. We keep both hooks so stores that skip 'completed'
+// (e.g. virtual products going straight to processing) still get badge checks.
+add_action('woocommerce_order_status_completed', 'gorilla_badge_check_on_order', 30);
+add_action('woocommerce_order_status_processing', 'gorilla_badge_check_on_order', 30);
+function gorilla_badge_check_on_order($order_id) {
+    // Static guard: prevent double-fire within the same request.
+    static $processed_orders = [];
+    if (in_array($order_id, $processed_orders, true)) {
+        return;
     }
-}, 30);
-add_action('woocommerce_order_status_processing', function($order_id) {
+
     $order = wc_get_order($order_id);
-    if ($order && $order->get_customer_id()) {
-        gorilla_badge_check_all($order->get_customer_id());
+    if (!$order) return;
+
+    $user_id = $order->get_customer_id();
+    if (!$user_id) return;
+
+    // Persistent guard: prevent double-fire across separate requests
+    // (e.g. processing webhook + completed webhook).
+    if ($order->get_meta('_gorilla_badge_checked')) {
+        return;
     }
-}, 30);
+
+    $processed_orders[] = $order_id;
+    $order->update_meta_data('_gorilla_badge_checked', current_time('mysql'));
+    $order->save();
+
+    gorilla_badge_check_all($user_id);
+}
 
 // ══════════════════════════════════════════════════════════
 // LEADERBOARD (WP Gamify tablosundan sorgu)
@@ -516,35 +580,54 @@ add_action('woocommerce_order_status_processing', function($order_id) {
 function gorilla_xp_get_leaderboard($period = 'monthly', $limit = 10) {
     global $wpdb;
 
-    $table = $wpdb->prefix . 'gamify_xp_transactions';
+    $limit     = max(5, min(50, intval($limit)));
     $anonymize = get_option('gorilla_lr_leaderboard_anonymize', 'no') === 'yes';
-    $limit = max(5, min(50, intval($limit)));
 
-    $where = 'WHERE t.amount > 0';
-    if ($period === 'monthly') {
-        $where .= $wpdb->prepare(' AND t.created_at >= %s', gmdate('Y-m-01 00:00:00'));
+    // C17 FIX: Cache leaderboard results for 5 minutes to avoid a full
+    // GROUP BY + JOIN on every page load.  The cache key encodes both
+    // period and limit so different views get independent caches.
+    $cache_key = 'gorilla_leaderboard_' . sanitize_key($period) . '_' . $limit;
+    $results   = get_transient($cache_key);
+
+    if (false === $results) {
+        $table = $wpdb->prefix . 'gamify_xp_transactions';
+
+        $where = 'WHERE t.amount > 0';
+        if ($period === 'monthly') {
+            $where .= $wpdb->prepare(' AND t.created_at >= %s', gmdate('Y-m-01 00:00:00'));
+        }
+
+        // FIX: Use $wpdb->prepare() for LIMIT to prevent SQL injection.
+        $results = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT t.user_id, SUM(t.amount) AS xp_earned, u.display_name
+                 FROM {$table} t
+                 LEFT JOIN {$wpdb->users} u ON t.user_id = u.ID
+                 {$where}
+                 GROUP BY t.user_id
+                 ORDER BY xp_earned DESC
+                 LIMIT %d",
+                absint($limit)
+            ),
+            ARRAY_A
+        );
+
+        if (!is_array($results)) {
+            $results = array();
+        }
+
+        set_transient($cache_key, $results, 5 * MINUTE_IN_SECONDS);
     }
-
-    $results = $wpdb->get_results(
-        "SELECT t.user_id, SUM(t.amount) AS xp_earned, u.display_name
-         FROM {$table} t
-         LEFT JOIN {$wpdb->users} u ON t.user_id = u.ID
-         {$where}
-         GROUP BY t.user_id
-         ORDER BY xp_earned DESC
-         LIMIT {$limit}",
-        ARRAY_A
-    );
 
     if (empty($results)) return array();
 
     foreach ($results as &$row) {
         $row['xp_earned'] = intval($row['xp_earned']);
         if ($anonymize && !empty($row['display_name'])) {
-            $name = $row['display_name'];
-            $parts = explode(' ', $name, 2);
-            $first = mb_substr($parts[0], 0, 1) . str_repeat('*', max(1, mb_strlen($parts[0]) - 1));
-            $last = isset($parts[1]) ? mb_substr($parts[1], 0, 1) . '.' : '';
+            $name   = $row['display_name'];
+            $parts  = explode(' ', $name, 2);
+            $first  = mb_substr($parts[0], 0, 1) . str_repeat('*', max(1, mb_strlen($parts[0]) - 1));
+            $last   = isset($parts[1]) ? mb_substr($parts[1], 0, 1) . '.' : '';
             $row['display_name'] = $first . ($last ? ' ' . $last : '');
         }
     }
@@ -676,6 +759,8 @@ function gorilla_spin_execute($user_id) {
     $history[] = array('prize' => $won_prize['label'], 'type' => $won_prize['type'], 'date' => current_time('mysql'));
     if (count($history) > 50) $history = array_slice($history, -50);
     update_user_meta($user_id, '_gorilla_spin_history', $history);
+
+    do_action('gorilla_spin_win', $user_id, $won_prize['label']);
 
     return array(
         'success'       => true,
@@ -918,6 +1003,11 @@ function gorilla_tier_grace_check() {
         "SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = %s AND meta_value != 'none' LIMIT 500",
         '_gorilla_last_tier'
     ));
+
+    // C15 FIX: Pre-fetch all user meta for batch to eliminate N+1 queries.
+    if (!empty($user_ids)) {
+        update_meta_cache('user', array_map('intval', $user_ids));
+    }
 
     foreach ($user_ids as $user_id) {
         $user_id    = intval($user_id);

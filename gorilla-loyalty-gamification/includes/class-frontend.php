@@ -81,11 +81,12 @@ add_action('wp_ajax_gorilla_notifications_read', function() {
 });
 
 // Hook into existing events to auto-add notifications
-add_action('gorilla_xp_added', function($user_id, $amount, $description) {
+add_action('gamify_after_xp_awarded', function($user_id, $amount, $source, $source_id = '') {
     if ($amount >= 10) { // Only notify for significant XP gains
-        gorilla_notification_add($user_id, 'xp_earned', sprintf('+%d XP: %s', $amount, $description));
+        $label = class_exists('WPGamify_XP_Engine') ? WPGamify_XP_Engine::get_source_label($source) : $source;
+        gorilla_notification_add($user_id, 'xp_earned', sprintf('+%d XP: %s', $amount, $label));
     }
-}, 10, 3);
+}, 10, 4);
 
 add_action('gorilla_credit_adjusted', function($user_id, $amount, $description) {
     if ($amount > 0) {
@@ -101,123 +102,9 @@ add_action('gorilla_badge_earned', function($user_id, $badge_key) {
 
 
 // ── Credit Transfer AJAX ─────────────────────────────────
-add_action('wp_ajax_gorilla_credit_transfer', function() {
-    check_ajax_referer('gorilla_credit_transfer', 'nonce');
-
-    if (get_option('gorilla_lr_transfer_enabled', 'no') !== 'yes') {
-        wp_send_json_error(array('message' => 'Bakiye transferi devre disi.'));
-    }
-
-    $sender_id = get_current_user_id();
-    if (!$sender_id) wp_send_json_error(array('message' => 'Giris yapmaniz gerekiyor.'));
-
-    $recipient_email = sanitize_email($_POST['recipient'] ?? '');
-    $amount = floatval($_POST['amount'] ?? 0);
-
-    // Validate recipient
-    if (!is_email($recipient_email)) {
-        wp_send_json_error(array('message' => 'Gecerli bir e-posta adresi girin.'));
-    }
-
-    $recipient = get_user_by('email', $recipient_email);
-    if (!$recipient) {
-        wp_send_json_error(array('message' => 'Bu e-posta adresine ait kullanici bulunamadi.'));
-    }
-
-    if ($recipient->ID === $sender_id) {
-        wp_send_json_error(array('message' => 'Kendinize transfer yapamazsiniz.'));
-    }
-
-    // Validate amount
-    $min_amount = floatval(get_option('gorilla_lr_transfer_min_amount', 10));
-    if ($amount < $min_amount) {
-        wp_send_json_error(array('message' => sprintf('Minimum transfer miktari: %s', wc_price($min_amount))));
-    }
-
-    // Check sender balance
-    if (!function_exists('gorilla_credit_get_balance') || !function_exists('gorilla_credit_adjust')) {
-        wp_send_json_error(array('message' => 'Sistem hatasi.'));
-    }
-
-    $balance = gorilla_credit_get_balance($sender_id);
-    if ($amount > $balance) {
-        wp_send_json_error(array('message' => sprintf('Yetersiz bakiye. Mevcut: %s', wc_price($balance))));
-    }
-
-    // Check daily limit
-    $daily_limit = floatval(get_option('gorilla_lr_transfer_daily_limit', 500));
-    if ($daily_limit > 0) {
-        $today_total = floatval(get_user_meta($sender_id, '_gorilla_transfer_today_total', true));
-        $today_date  = get_user_meta($sender_id, '_gorilla_transfer_today_date', true);
-
-        // Reset if new day
-        if ($today_date !== current_time('Y-m-d')) {
-            $today_total = 0;
-            update_user_meta($sender_id, '_gorilla_transfer_today_date', current_time('Y-m-d'));
-        }
-
-        if (($today_total + $amount) > $daily_limit) {
-            $remaining = max(0, $daily_limit - $today_total);
-            wp_send_json_error(array('message' => sprintf('Gunluk transfer limitiniz: %s. Kalan: %s', wc_price($daily_limit), wc_price($remaining))));
-        }
-    }
-
-    // Calculate fee
-    $fee_pct = intval(get_option('gorilla_lr_transfer_fee_pct', 0));
-    $fee_amount = 0;
-    $receive_amount = $amount;
-    if ($fee_pct > 0) {
-        $fee_amount = round($amount * $fee_pct / 100, 2);
-        $receive_amount = round($amount - $fee_amount, 2);
-    }
-
-    // Execute transfer
-    $sender_name = wp_get_current_user()->display_name;
-    $recipient_name = $recipient->display_name;
-
-    // Deduct from sender (full amount)
-    gorilla_credit_adjust(
-        $sender_id,
-        -$amount,
-        'transfer_out',
-        sprintf('%s adli kullaniciya transfer', $recipient_name)
-    );
-
-    // Add to recipient (after fee)
-    gorilla_credit_adjust(
-        $recipient->ID,
-        $receive_amount,
-        'transfer_in',
-        sprintf('%s adli kullanicidan transfer', $sender_name)
-    );
-
-    // Update daily total
-    if ($daily_limit > 0) {
-        $today_total = floatval(get_user_meta($sender_id, '_gorilla_transfer_today_total', true));
-        $today_date  = get_user_meta($sender_id, '_gorilla_transfer_today_date', true);
-        if ($today_date !== current_time('Y-m-d')) $today_total = 0;
-        update_user_meta($sender_id, '_gorilla_transfer_today_total', $today_total + $amount);
-        update_user_meta($sender_id, '_gorilla_transfer_today_date', current_time('Y-m-d'));
-    }
-
-    // Notify both parties
-    if (function_exists('gorilla_notification_add')) {
-        gorilla_notification_add($sender_id, 'credit_used', sprintf('%s transfer edildi → %s', wc_price($amount), $recipient_name));
-        gorilla_notification_add($recipient->ID, 'credit_earned', sprintf('%s transfer alindi ← %s', wc_price($receive_amount), $sender_name));
-    }
-
-    $new_balance = gorilla_credit_get_balance($sender_id);
-    $msg = sprintf('%s basariyla %s adli kullaniciya gonderildi.', wc_price($amount), $recipient_name);
-    if ($fee_amount > 0) {
-        $msg .= sprintf(' (Komisyon: %s, aliciya ulasan: %s)', wc_price($fee_amount), wc_price($receive_amount));
-    }
-
-    wp_send_json_success(array(
-        'message'     => $msg,
-        'new_balance' => $new_balance,
-        'formatted'   => strip_tags(wc_price($new_balance)),
-    ));
-});
+// REMOVED: Duplicate non-atomic credit transfer handler (C1/C6).
+// The authoritative handler is gorilla_transfer_credit_handler() in class-loyalty.php
+// which uses GET_LOCK for atomicity and supports both credit and XP transfers.
 
 // ── My Account Endpoint'leri ─────────────────────────────
 // FIX: EP_ROOT kaldırıldı, sadece EP_PAGES kullan
@@ -854,104 +741,9 @@ add_action('woocommerce_account_gorilla-loyalty_endpoint', function() {
             <?php endif; ?>
             <?php endif; ?>
 
-            <!-- Credit Transfer -->
-            <?php if (get_option('gorilla_lr_transfer_enabled', 'no') === 'yes' && function_exists('gorilla_credit_get_balance')):
-                $transfer_balance = gorilla_credit_get_balance($user_id);
-                $transfer_min = floatval(get_option('gorilla_lr_transfer_min_amount', 10));
-                $transfer_daily_limit = floatval(get_option('gorilla_lr_transfer_daily_limit', 500));
-                $transfer_fee = intval(get_option('gorilla_lr_transfer_fee_pct', 0));
-                $transfer_today_total = 0;
-                if ($transfer_daily_limit > 0) {
-                    $td = get_user_meta($user_id, '_gorilla_transfer_today_date', true);
-                    if ($td === current_time('Y-m-d')) {
-                        $transfer_today_total = floatval(get_user_meta($user_id, '_gorilla_transfer_today_total', true));
-                    }
-                    $transfer_remaining = max(0, $transfer_daily_limit - $transfer_today_total);
-                }
-            ?>
-            <h3 style="margin-top:30px; border-bottom:2px solid #e5e7eb; padding-bottom:10px; font-size:20px; font-weight:800;">💸 Bakiye Transferi</h3>
-            <div class="glr-card" style="padding:20px;">
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
-                    <div>
-                        <label style="font-size:13px; color:#6b7280; display:block; margin-bottom:4px;">Alici E-posta</label>
-                        <input type="email" id="glr-transfer-recipient" placeholder="ornek@email.com" style="width:100%; padding:10px 14px; border:1px solid #d1d5db; border-radius:8px; font-size:14px;">
-                    </div>
-                    <div>
-                        <label style="font-size:13px; color:#6b7280; display:block; margin-bottom:4px;">Miktar (₺)</label>
-                        <input type="number" id="glr-transfer-amount" min="<?php echo esc_attr($transfer_min); ?>" max="<?php echo esc_attr($transfer_balance); ?>" step="0.01" placeholder="<?php echo esc_attr($transfer_min); ?>" style="width:100%; padding:10px 14px; border:1px solid #d1d5db; border-radius:8px; font-size:14px;">
-                    </div>
-                </div>
-                <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-                    <button type="button" id="glr-transfer-btn" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9); color:#fff; border:none; padding:10px 24px; border-radius:8px; font-weight:600; cursor:pointer; font-size:14px;">
-                        Gonder
-                    </button>
-                    <span style="font-size:13px; color:#6b7280;">
-                        Bakiye: <strong id="glr-transfer-balance"><?php echo strip_tags(wc_price($transfer_balance)); ?></strong>
-                        <?php if ($transfer_daily_limit > 0): ?>
-                         | Gunluk kalan: <strong><?php echo strip_tags(wc_price($transfer_remaining)); ?></strong> / <?php echo strip_tags(wc_price($transfer_daily_limit)); ?>
-                        <?php endif; ?>
-                        <?php if ($transfer_fee > 0): ?>
-                         | Komisyon: %<?php echo $transfer_fee; ?>
-                        <?php endif; ?>
-                    </span>
-                </div>
-                <div id="glr-transfer-msg" style="margin-top:10px; display:none; padding:10px 14px; border-radius:8px; font-size:13px;"></div>
-            </div>
-            <script>
-            (function(){
-                var btn = document.getElementById('glr-transfer-btn');
-                if (!btn) return;
-                btn.addEventListener('click', function() {
-                    var recipient = document.getElementById('glr-transfer-recipient').value.trim();
-                    var amount = parseFloat(document.getElementById('glr-transfer-amount').value) || 0;
-                    var msgEl = document.getElementById('glr-transfer-msg');
-
-                    if (!recipient || amount <= 0) {
-                        msgEl.style.display = 'block';
-                        msgEl.style.background = '#fef2f2';
-                        msgEl.style.color = '#dc2626';
-                        msgEl.textContent = 'Alici ve miktar alanlari zorunludur.';
-                        return;
-                    }
-
-                    if (!confirm('Gonderilecek: ' + amount.toFixed(2) + ' TL → ' + recipient + '\n\nOnayliyor musunuz?')) return;
-
-                    btn.disabled = true;
-                    btn.textContent = 'Gonderiliyor...';
-
-                    var xhr = new XMLHttpRequest();
-                    xhr.open('POST', '<?php echo esc_url(admin_url('admin-ajax.php')); ?>', true);
-                    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-                    xhr.onload = function() {
-                        btn.disabled = false;
-                        btn.textContent = 'Gonder';
-                        try {
-                            var res = JSON.parse(xhr.responseText);
-                            msgEl.style.display = 'block';
-                            if (res.success) {
-                                msgEl.style.background = '#f0fdf4';
-                                msgEl.style.color = '#16a34a';
-                                msgEl.textContent = res.data.message;
-                                document.getElementById('glr-transfer-balance').textContent = res.data.formatted;
-                                document.getElementById('glr-transfer-amount').value = '';
-                                document.getElementById('glr-transfer-recipient').value = '';
-                            } else {
-                                msgEl.style.background = '#fef2f2';
-                                msgEl.style.color = '#dc2626';
-                                msgEl.textContent = res.data.message || 'Transfer basarisiz.';
-                            }
-                        } catch(e) {
-                            msgEl.style.display = 'block';
-                            msgEl.style.background = '#fef2f2';
-                            msgEl.style.color = '#dc2626';
-                            msgEl.textContent = 'Bir hata olustu.';
-                        }
-                    };
-                    xhr.send('action=gorilla_credit_transfer&nonce=<?php echo wp_create_nonce('gorilla_credit_transfer'); ?>&recipient=' + encodeURIComponent(recipient) + '&amount=' + amount);
-                });
-            })();
-            </script>
-            <?php endif; ?>
+            <!-- Credit Transfer: REMOVED duplicate non-atomic UI (C1/C6).
+                 The unified "Puan Transfer" section below uses gorilla_transfer_credit
+                 handler in class-loyalty.php with GET_LOCK atomicity. -->
 
             <!-- Analytics Dashboard -->
             <?php

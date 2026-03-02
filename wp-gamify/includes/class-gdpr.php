@@ -139,6 +139,25 @@ class WPGamify_GDPR {
             }
         }
 
+        // Audit log entries export.
+        $audit_table = $wpdb->prefix . 'gamify_audit_log';
+        $audit_rows  = $wpdb->get_results( $wpdb->prepare(
+            "SELECT action, details, admin_user_id, created_at FROM {$audit_table} WHERE target_user_id = %d ORDER BY created_at DESC LIMIT 100",
+            $user_id
+        ), ARRAY_A );
+        foreach ( $audit_rows as $ai => $arow ) {
+            $data[] = array(
+                'group_id'    => 'wpgamify-audit',
+                'group_label' => 'WP Gamify - Audit Log',
+                'item_id'     => "gamify-audit-{$user_id}-{$ai}",
+                'data'        => array(
+                    array( 'name' => 'Islem', 'value' => $arow['action'] ?? '' ),
+                    array( 'name' => 'Detay', 'value' => $arow['details'] ?? '' ),
+                    array( 'name' => 'Tarih', 'value' => $arow['created_at'] ?? '' ),
+                ),
+            );
+        }
+
         // Birthday metadata.
         $birthday = get_user_meta( $user_id, '_wpgamify_birthday', true );
         if ( $birthday !== '' && $birthday !== false ) {
@@ -183,10 +202,13 @@ class WPGamify_GDPR {
         $streak_table = $wpdb->prefix . 'gamify_streaks';
         $removed += (int) $wpdb->delete( $streak_table, [ 'user_id' => $user_id ], [ '%d' ] );
 
-        // Delete all _wpgamify_* user meta
+        // Delete all _wpgamify_* AND wpgamify_* user meta (C2 fix: anti-abuse
+        // keys like wpgamify_last_ip do NOT have the leading underscore).
         $wpdb->query( $wpdb->prepare(
-            "DELETE FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key LIKE %s",
-            $user_id, '_wpgamify_%'
+            "DELETE FROM {$wpdb->usermeta} WHERE user_id = %d AND (meta_key LIKE %s OR meta_key LIKE %s)",
+            $user_id,
+            $wpdb->esc_like( '_wpgamify_' ) . '%',
+            $wpdb->esc_like( 'wpgamify_' ) . '%'
         ) );
 
         // Delete audit log entries

@@ -71,6 +71,13 @@ class WPGamify_Campaign_Manager {
      *                    Keys: multiplier (float), label (string), start (string), end (string)
      */
     public static function get_active_campaign(): ?array {
+        // Cache result per request to avoid 4 get_option calls on repeat calls.
+        static $cached = null;
+        static $cached_set = false;
+        if ( $cached_set ) {
+            return $cached;
+        }
+
         $multiplier = (float) get_option( self::$opt_multiplier, 0 );
         $label      = (string) get_option( self::$opt_label, '' );
         $start      = (string) get_option( self::$opt_start, '' );
@@ -78,6 +85,8 @@ class WPGamify_Campaign_Manager {
 
         // No campaign configured.
         if ( $multiplier <= 0 || empty( $start ) || empty( $end ) ) {
+            $cached_set = true;
+            $cached     = null;
             return null;
         }
 
@@ -93,15 +102,19 @@ class WPGamify_Campaign_Manager {
 
         // Check if current time is within campaign window.
         if ( $now < $start_dt || $now > $end_dt ) {
+            $cached_set = true;
+            $cached     = null;
             return null;
         }
 
-        return [
+        $cached = [
             'multiplier' => $multiplier,
             'label'      => $label,
             'start'      => $start,
             'end'        => $end,
         ];
+        $cached_set = true;
+        return $cached;
     }
 
     /**
@@ -119,9 +132,18 @@ class WPGamify_Campaign_Manager {
         // Validate multiplier is positive.
         $multiplier = max( 0.1, $multiplier );
 
-        // Validate date formats.
-        $start_dt = DateTimeImmutable::createFromFormat( 'Y-m-d H:i:s', $start, wp_timezone() );
-        $end_dt   = DateTimeImmutable::createFromFormat( 'Y-m-d H:i:s', $end, wp_timezone() );
+        // Validate date formats - accept multiple common formats.
+        $formats = [ 'Y-m-d H:i:s', 'Y-m-d\TH:i:s', 'Y-m-d\TH:i', 'Y-m-d H:i', 'Y-m-d' ];
+        $start_dt = null;
+        $end_dt   = null;
+        foreach ( $formats as $fmt ) {
+            if ( ! $start_dt ) {
+                $start_dt = DateTimeImmutable::createFromFormat( $fmt, $start, wp_timezone() );
+            }
+            if ( ! $end_dt ) {
+                $end_dt = DateTimeImmutable::createFromFormat( $fmt, $end, wp_timezone() );
+            }
+        }
 
         if ( ! $start_dt || ! $end_dt ) {
             return;

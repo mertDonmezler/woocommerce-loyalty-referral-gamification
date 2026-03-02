@@ -73,7 +73,9 @@ class WPGamify_Activator {
             grace_until DATETIME DEFAULT NULL,
             last_xp_at DATETIME DEFAULT NULL,
             updated_at DATETIME NOT NULL,
-            PRIMARY KEY  (user_id)
+            PRIMARY KEY  (user_id),
+            KEY current_level (current_level),
+            KEY grace_until (grace_until)
         ) {$charset_collate};";
 
         // Streaks
@@ -85,7 +87,8 @@ class WPGamify_Activator {
             last_activity_date DATE DEFAULT NULL,
             streak_xp_today INT DEFAULT 0,
             updated_at DATETIME NOT NULL,
-            PRIMARY KEY  (user_id)
+            PRIMARY KEY  (user_id),
+            KEY last_activity_date (last_activity_date)
         ) {$charset_collate};";
 
         // Levels Config

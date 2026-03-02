@@ -275,12 +275,14 @@ class WPGamify_XP_Engine {
         $table = $wpdb->prefix . 'gamify_xp_transactions';
         $today = ( new \DateTimeImmutable( 'now', wp_timezone() ) )->format( 'Y-m-d' );
 
+        // C14 FIX: Use range query instead of DATE() to allow index usage.
         $xp = $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT COALESCE(SUM(amount), 0) FROM {$table}
-                 WHERE user_id = %d AND amount > 0 AND DATE(created_at) = %s",
+                 WHERE user_id = %d AND amount > 0 AND created_at >= %s AND created_at < %s",
                 $user_id,
-                $today
+                $today . ' 00:00:00',
+                $today . ' 23:59:59'
             )
         );
 
@@ -370,6 +372,9 @@ class WPGamify_XP_Engine {
     /**
      * Kullanicinin seviye kaydini XP islemlerine gore gunceller.
      *
+     * XP toplamlari hesaplanir ve user_levels tablosuna yazilir.
+     * Seviye hesaplama ve hook tetikleme WPGamify_Level_Manager'a delege edilir.
+     *
      * @param int $user_id Kullanici ID.
      * @return void
      */
@@ -378,7 +383,6 @@ class WPGamify_XP_Engine {
 
         $txn_table   = $wpdb->prefix . 'gamify_xp_transactions';
         $level_table = $wpdb->prefix . 'gamify_user_levels';
-        $conf_table  = $wpdb->prefix . 'gamify_levels_config';
         $now         = current_time( 'mysql' );
 
         // Toplam XP hesapla.
@@ -390,58 +394,16 @@ class WPGamify_XP_Engine {
         );
         $total_xp = max( 0, $total_xp );
 
-        // Seviye moduna gore kullanilacak XP.
+        // Rolling XP hesapla.
         $mode       = WPGamify_Settings::get( 'level_mode', 'alltime' );
         $rolling_xp = 0;
-        $effective_xp = $total_xp;
 
         if ( $mode === 'rolling' ) {
             $months     = (int) WPGamify_Settings::get( 'level_rolling_months', 6 );
             $rolling_xp = self::get_rolling_xp( $user_id, $months );
-            $effective_xp = $rolling_xp;
         }
 
-        // Seviye belirle (en yuksek esigi gecen seviye).
-        $current_level = (int) $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT level_number FROM {$conf_table}
-                 WHERE xp_required <= %d
-                 ORDER BY xp_required DESC
-                 LIMIT 1",
-                $effective_xp
-            )
-        );
-        $current_level = max( 1, $current_level );
-
-        // Grace period kontrolu (rolling modda seviye dusmesi icin).
-        $grace_until = null;
-        if ( $mode === 'rolling' ) {
-            $existing = $wpdb->get_row(
-                $wpdb->prepare(
-                    "SELECT current_level, grace_until FROM {$level_table} WHERE user_id = %d",
-                    $user_id
-                )
-            );
-
-            if ( $existing && (int) $existing->current_level > $current_level ) {
-                $grace_days = (int) WPGamify_Settings::get( 'level_grace_days', 14 );
-
-                if ( $existing->grace_until === null ) {
-                    // Grace baslangiclandi.
-                    $grace_until   = ( new \DateTimeImmutable( 'now', wp_timezone() ) )
-                        ->modify( "+{$grace_days} days" )
-                        ->format( 'Y-m-d H:i:s' );
-                    $current_level = (int) $existing->current_level; // Seviye korunuyor.
-                } elseif ( strtotime( $existing->grace_until ) > time() ) {
-                    // Grace hala gecerli.
-                    $grace_until   = $existing->grace_until;
-                    $current_level = (int) $existing->current_level;
-                }
-                // else: Grace suresi doldu, seviye duser.
-            }
-        }
-
-        // Upsert: user_levels tablosu.
+        // Upsert: user_levels tablosuna sadece XP degerlerini yaz.
         $exists = $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT user_id FROM {$level_table} WHERE user_id = %d",
@@ -453,15 +415,13 @@ class WPGamify_XP_Engine {
             $wpdb->update(
                 $level_table,
                 [
-                    'current_level' => $current_level,
-                    'total_xp'      => $total_xp,
-                    'rolling_xp'    => $rolling_xp,
-                    'grace_until'   => $grace_until,
-                    'last_xp_at'    => $now,
-                    'updated_at'    => $now,
+                    'total_xp'   => $total_xp,
+                    'rolling_xp' => $rolling_xp,
+                    'last_xp_at' => $now,
+                    'updated_at' => $now,
                 ],
                 [ 'user_id' => $user_id ],
-                [ '%d', '%d', '%d', '%s', '%s', '%s' ],
+                [ '%d', '%d', '%s', '%s' ],
                 [ '%d' ]
             );
         } else {
@@ -469,15 +429,20 @@ class WPGamify_XP_Engine {
                 $level_table,
                 [
                     'user_id'       => $user_id,
-                    'current_level' => $current_level,
+                    'current_level' => 1,
                     'total_xp'      => $total_xp,
                     'rolling_xp'    => $rolling_xp,
-                    'grace_until'   => $grace_until,
                     'last_xp_at'    => $now,
                     'updated_at'    => $now,
                 ],
-                [ '%d', '%d', '%d', '%d', '%s', '%s', '%s' ]
+                [ '%d', '%d', '%d', '%d', '%s', '%s' ]
             );
+        }
+
+        // Seviye hesaplama ve gamify_level_up/gamify_level_down hook'larini
+        // Level Manager'a delege et (grace period yonetimi dahil).
+        if ( class_exists( 'WPGamify_Level_Manager' ) ) {
+            WPGamify_Level_Manager::sync_level( $user_id );
         }
 
         // Transient onbellegini temizle.

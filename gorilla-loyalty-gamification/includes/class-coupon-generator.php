@@ -14,6 +14,23 @@ if (!defined('ABSPATH')) exit;
  * @param array $params Coupon parameters
  * @return string|false Coupon code or false on failure
  */
+if (!function_exists('gorilla_coupon_code_exists')) {
+    /**
+     * Check if a coupon code already exists using a direct DB query.
+     *
+     * @param string $code Coupon code to check.
+     * @return bool True if exists, false otherwise.
+     */
+    function gorilla_coupon_code_exists($code) {
+        global $wpdb;
+        $exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT ID FROM {$wpdb->posts} WHERE post_title = %s AND post_type = 'shop_coupon' LIMIT 1",
+            $code
+        ));
+        return (bool) $exists;
+    }
+}
+
 if (!function_exists('gorilla_generate_coupon')) {
     function gorilla_generate_coupon($params = array()) {
         if (!class_exists('WC_Coupon')) return false;
@@ -35,14 +52,15 @@ if (!function_exists('gorilla_generate_coupon')) {
         $code = '';
         for ($attempt = 0; $attempt < $max_attempts; $attempt++) {
             $candidate = $params['prefix'] . '-' . strtoupper(wp_generate_password(8, false));
-            $existing = get_page_by_title($candidate, OBJECT, 'shop_coupon');
-            if (!$existing) {
+            if (!gorilla_coupon_code_exists($candidate)) {
                 $code = $candidate;
                 break;
             }
         }
         if (!$code) {
-            $code = $params['prefix'] . '-' . strtoupper(wp_generate_password(12, false));
+            do {
+                $code = $params['prefix'] . '-' . strtoupper(wp_generate_password(12, false));
+            } while (gorilla_coupon_code_exists($code));
         }
 
         $coupon = new \WC_Coupon();

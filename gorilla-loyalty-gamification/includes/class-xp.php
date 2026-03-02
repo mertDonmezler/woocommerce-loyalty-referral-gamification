@@ -17,6 +17,24 @@ if (!defined('ABSPATH')) exit;
 // ==============================================================
 
 /**
+ * Check whether a WP Gamify table exists.
+ * Result is cached in a static array so the SHOW TABLES query runs at most
+ * once per table per request.
+ *
+ * @param string $table Full table name including prefix.
+ * @return bool
+ */
+function gorilla_xp_table_exists($table) {
+    static $cache = array();
+    if (isset($cache[$table])) {
+        return $cache[$table];
+    }
+    global $wpdb;
+    $cache[$table] = ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table)) === $table);
+    return $cache[$table];
+}
+
+/**
  * @deprecated 2.0.0 Use WPGamify_XP_Engine::award() instead.
  */
 function gorilla_xp_add($user_id, $amount, $reason = '', $reference_type = null, $reference_id = null) {
@@ -32,7 +50,7 @@ function gorilla_xp_add($user_id, $amount, $reason = '', $reference_type = null,
     );
 
     if ($result === false) {
-        return gorilla_xp_get_balance($user_id);
+        return false;
     }
 
     return gorilla_xp_get_balance($user_id);
@@ -135,10 +153,11 @@ function gorilla_xp_get_log($user_id, $limit = 20) {
     if (!class_exists('WPGamify_XP_Engine')) return array();
     $result = WPGamify_XP_Engine::get_history((int) $user_id, 1, $limit);
     return array_map(function($item) {
-        return (object) array(
-            'id'             => $item['id'],
-            'user_id'        => 0,
-            'amount'         => $item['amount'],
+        // Return ARRAY so frontend is_array() checks pass (C11 fix).
+        return array(
+            'id'             => $item['id'] ?? 0,
+            'user_id'        => $item['user_id'] ?? 0,
+            'amount'         => $item['amount'] ?? 0,
             'balance_after'  => 0,
             'reason'         => $item['note'] ?? '',
             'reference_type' => $item['source'] ?? '',
@@ -182,6 +201,7 @@ function gorilla_xp_has_been_awarded($user_id, $reference_type, $reference_id) {
     if (!class_exists('WPGamify_XP_Engine')) return false;
     global $wpdb;
     $table = $wpdb->prefix . 'gamify_xp_transactions';
+    if (!gorilla_xp_table_exists($table)) return false;
     return (bool) $wpdb->get_var($wpdb->prepare(
         "SELECT id FROM {$table} WHERE user_id = %d AND source = %s AND source_id = %s LIMIT 1",
         (int) $user_id, sanitize_key($reference_type), (string) $reference_id
@@ -192,18 +212,34 @@ function gorilla_xp_has_been_awarded($user_id, $reference_type, $reference_id) {
  * @deprecated 2.0.0 Use WPGamify_XP_Engine::get_history() to get admin stats.
  */
 function gorilla_xp_get_admin_stats() {
+    $defaults = array('total_xp' => 0, 'avg_xp' => 0, 'users_with_xp' => 0, 'level_distribution' => array());
     if (!class_exists('WPGamify_XP_Engine')) {
-        return array('total_xp' => 0, 'avg_xp' => 0, 'users_with_xp' => 0, 'level_distribution' => array());
+        return $defaults;
     }
     global $wpdb;
-    $txn_table = $wpdb->prefix . 'gamify_xp_transactions';
+    $txn_table   = $wpdb->prefix . 'gamify_xp_transactions';
     $level_table = $wpdb->prefix . 'gamify_user_levels';
 
-    $stats = array('total_xp' => 0, 'avg_xp' => 0, 'users_with_xp' => 0, 'level_distribution' => array());
-    $stats['total_xp'] = (int) $wpdb->get_var("SELECT COALESCE(SUM(amount), 0) FROM {$txn_table} WHERE amount > 0");
-    $stats['users_with_xp'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$level_table} WHERE total_xp > 0");
+    // Guard: verify tables exist before querying (cached per request)
+    if (!gorilla_xp_table_exists($txn_table) || !gorilla_xp_table_exists($level_table)) {
+        return $defaults;
+    }
+
+    $stats = $defaults;
+    // C8 fix: use $wpdb->prepare() for all queries
+    $stats['total_xp'] = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT COALESCE(SUM(amount), 0) FROM {$txn_table} WHERE amount > %d",
+        0
+    ));
+    $stats['users_with_xp'] = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) FROM {$level_table} WHERE total_xp > %d",
+        0
+    ));
     if ($stats['users_with_xp'] > 0) {
-        $stats['avg_xp'] = (int) round((float) $wpdb->get_var("SELECT AVG(total_xp) FROM {$level_table} WHERE total_xp > 0"));
+        $stats['avg_xp'] = (int) round((float) $wpdb->get_var($wpdb->prepare(
+            "SELECT AVG(total_xp) FROM {$level_table} WHERE total_xp > %d",
+            0
+        )));
     }
     return $stats;
 }
@@ -215,8 +251,10 @@ function gorilla_xp_get_recent_activity($limit = 10) {
     if (!class_exists('WPGamify_XP_Engine')) return array();
     global $wpdb;
     $table = $wpdb->prefix . 'gamify_xp_transactions';
+    if (!gorilla_xp_table_exists($table)) return array();
+    // Alias 'note' as 'reason' for backward-compatible admin consumer access ($xp->reason)
     return $wpdb->get_results($wpdb->prepare(
-        "SELECT t.*, u.display_name FROM {$table} t LEFT JOIN {$wpdb->users} u ON t.user_id = u.ID ORDER BY t.created_at DESC LIMIT %d",
+        "SELECT t.*, t.note AS reason, u.display_name FROM {$table} t LEFT JOIN {$wpdb->users} u ON t.user_id = u.ID ORDER BY t.created_at DESC LIMIT %d",
         $limit
     ));
 }

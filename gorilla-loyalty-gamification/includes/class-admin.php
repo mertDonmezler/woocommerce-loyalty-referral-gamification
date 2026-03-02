@@ -110,11 +110,11 @@ function gorilla_admin_dashboard_page() {
             );
             foreach ($cards as $c):
             ?>
-            <div style="background:#fff; padding:20px; border-radius:14px; border-top:4px solid <?php echo $c[3]; ?>; box-shadow:0 1px 6px rgba(0,0,0,0.05);">
-                <div style="font-size:24px; margin-bottom:4px;"><?php echo $c[0]; ?></div>
-                <div style="font-size:24px; font-weight:800; color:#1f2937;"><?php echo $c[2]; ?></div>
-                <div style="color:#6b7280; font-size:12px; margin-top:4px;"><?php echo $c[1]; ?></div>
-                <?php if ($c[4]): ?><div style="margin-top:4px;"><?php echo $c[4]; ?></div><?php endif; ?>
+            <div style="background:#fff; padding:20px; border-radius:14px; border-top:4px solid <?php echo esc_attr($c[3]); ?>; box-shadow:0 1px 6px rgba(0,0,0,0.05);">
+                <div style="font-size:24px; margin-bottom:4px;"><?php echo esc_html($c[0]); ?></div>
+                <div style="font-size:24px; font-weight:800; color:#1f2937;"><?php echo wp_kses_post($c[2]); ?></div>
+                <div style="color:#6b7280; font-size:12px; margin-top:4px;"><?php echo esc_html($c[1]); ?></div>
+                <?php if ($c[4]): ?><div style="margin-top:4px;"><?php echo wp_kses_post($c[4]); ?></div><?php endif; ?>
             </div>
             <?php endforeach; ?>
         </div>
@@ -468,56 +468,98 @@ function gorilla_admin_calculate_stats() {
     $user_counts = count_users();
     $stats['total_customers'] = intval($user_counts['avail_roles']['customer'] ?? 0);
 
-    // Seviye dagilimi hesapla (sampling - performans icin)
+    // Seviye dagilimi ve top musteriler - single batch SQL query (N+1 fix)
     $tiers = gorilla_get_tiers();
     $period = intval(get_option('gorilla_lr_period_months', 6));
-    $date_from = gmdate('Y-m-d', strtotime("-{$period} months"));
+    $date_from = gmdate('Y-m-d H:i:s', strtotime("-{$period} months"));
 
     $tier_counts = array();
     foreach (array_keys($tiers) as $key) {
         $tier_counts[$key] = 0;
     }
 
-    // Sample olarak ilk 500 musteriyi kontrol et
-    $customer_ids = get_users(array('role' => 'customer', 'fields' => 'ID', 'number' => 500));
-    foreach ($customer_ids as $cid) {
-        if (function_exists('gorilla_loyalty_calculate_tier')) {
-            $tier = gorilla_loyalty_calculate_tier($cid);
-            $key = $tier['key'] ?? 'none';
-            if ($key !== 'none' && isset($tier_counts[$key])) {
-                $tier_counts[$key]++;
-            }
+    // HPOS-aware single batch query for customer spending
+    $use_hpos = false;
+    if (class_exists('Automattic\\WooCommerce\\Utilities\\OrderUtil')) {
+        if (method_exists('Automattic\\WooCommerce\\Utilities\\OrderUtil', 'custom_orders_table_usage_is_enabled')) {
+            $use_hpos = \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled();
         }
     }
+
+    $spending_rows = [];
+    if ($use_hpos) {
+        $orders_table = $wpdb->prefix . 'wc_orders';
+        $spending_rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT customer_id, SUM(total_amount) as total_spent
+             FROM {$orders_table}
+             WHERE status IN ('wc-completed','wc-processing')
+             AND date_created_gmt >= %s AND customer_id > 0
+             GROUP BY customer_id ORDER BY total_spent DESC LIMIT 500",
+            $date_from
+        ));
+    } else {
+        $spending_rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT pm.meta_value AS customer_id, SUM(pm2.meta_value) AS total_spent
+             FROM {$wpdb->posts} p
+             INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_customer_user'
+             INNER JOIN {$wpdb->postmeta} pm2 ON p.ID = pm2.post_id AND pm2.meta_key = '_order_total'
+             WHERE p.post_type = 'shop_order'
+             AND p.post_status IN ('wc-completed','wc-processing')
+             AND p.post_date_gmt >= %s
+             AND pm.meta_value > 0
+             GROUP BY pm.meta_value ORDER BY total_spent DESC LIMIT 500",
+            $date_from
+        ));
+    }
+
+    // Compute tier distribution and top customers in-memory
+    $spending_list = array();
+    $tier_keys_sorted = array_keys($tiers);
+
+    foreach ($spending_rows as $row) {
+        $cid = intval($row->customer_id);
+        $spent = floatval($row->total_spent);
+
+        // Match spending to tier thresholds (in-memory)
+        $matched_key = 'none';
+        $matched_tier = array();
+        foreach ($tiers as $key => $tier) {
+            if (!is_array($tier)) continue;
+            if ($spent >= ($tier['min'] ?? 0)) {
+                $matched_key = $key;
+                $matched_tier = $tier;
+            }
+        }
+
+        if ($matched_key !== 'none' && isset($tier_counts[$matched_key])) {
+            $tier_counts[$matched_key]++;
+        }
+
+        if ($spent > 0) {
+            $spending_list[] = array(
+                'id' => $cid,
+                'spending' => $spent,
+                'tier_key' => $matched_key,
+                'tier_label' => $matched_tier['label'] ?? '',
+                'tier_emoji' => $matched_tier['emoji'] ?? '',
+            );
+        }
+    }
+
     $stats['tier_distribution'] = $tier_counts;
     $stats['tiered_customers'] = array_sum($tier_counts);
 
-    // Top musteriler (harcamaya gore)
+    // Top 5 customers (already sorted by total_spent DESC from SQL)
     $top = array();
-    if (function_exists('gorilla_loyalty_calculate_tier')) {
-        $customers_sample = get_users(array('role' => 'customer', 'fields' => 'ID', 'number' => 100));
-        $spending_list = array();
-
-        foreach ($customers_sample as $cid) {
-            $tier = gorilla_loyalty_calculate_tier($cid);
-            if (($tier['spending'] ?? 0) > 0) {
-                $user = get_userdata($cid);
-                $spending_list[] = array(
-                    'id' => $cid,
-                    'name' => $user ? $user->display_name : 'ID:' . $cid,
-                    'spending' => floatval($tier['spending']),
-                    'tier_label' => $tier['label'] ?? '',
-                    'tier_emoji' => $tier['emoji'] ?? '',
-                );
-            }
-        }
-
-        // En yuksek harcayana gore sirala
-        usort($spending_list, function($a, $b) {
-            return $b['spending'] <=> $a['spending'];
-        });
-
-        $top = array_slice($spending_list, 0, 5);
+    foreach (array_slice($spending_list, 0, 5) as $item) {
+        $user = get_userdata($item['id']);
+        $top[] = array(
+            'id' => $item['id'],
+            'name' => $user ? $user->display_name : 'ID:' . $item['id'],
+            'spending' => $item['spending'],
+            'tier_label' => $item['tier_label'],
+            'tier_emoji' => $item['tier_emoji'],
+        );
     }
     $stats['top_customers'] = $top;
 
@@ -534,9 +576,28 @@ add_filter('manage_users_columns', function($cols) {
 });
 
 add_filter('manage_users_custom_column', function($val, $col, $uid) {
+    // Pre-fetch all user meta for displayed users in one query (N+1 fix)
+    static $meta_primed = false;
+    if (!$meta_primed) {
+        $meta_primed = true;
+        // Get the current user list table query results and prime meta cache
+        $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+        if ($screen && $screen->id === 'users') {
+            global $wp_list_table;
+            if (!empty($wp_list_table) && method_exists($wp_list_table, 'get_column_info')) {
+                // Access the items property which contains the queried user objects
+                $items = isset($wp_list_table->items) ? $wp_list_table->items : array();
+                $user_ids = wp_list_pluck($items, 'ID');
+                if (!empty($user_ids)) {
+                    update_meta_cache('user', $user_ids);
+                }
+            }
+        }
+    }
+
     if ($col === 'gorilla_tier') {
         $tier = gorilla_lr_get_user_tier($uid);
-        return $tier['key'] !== 'none' ? $tier['emoji'] . ' ' . $tier['label'] : '<span style="color:#ccc;">—</span>';
+        return $tier['key'] !== 'none' ? esc_html($tier['emoji'] . ' ' . $tier['label']) : '<span style="color:#ccc;">—</span>';
     }
     if ($col === 'gorilla_credit') {
         if (!function_exists('gorilla_credit_get_balance')) {

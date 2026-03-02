@@ -40,6 +40,16 @@ spl_autoload_register( function ( string $class ): void {
         'frontend',
     ];
 
+    // Validate: only autoload WPGamify_ or Gamify prefixed classes.
+    if ( ! str_starts_with( $class, 'WPGamify_' ) && ! str_starts_with( $class, 'Gamify' ) ) {
+        return;
+    }
+
+    // Validate class name: only allow alphanumeric + underscore.
+    if ( ! preg_match( '/^[A-Za-z_][A-Za-z0-9_]*$/', $class ) ) {
+        return;
+    }
+
     // Convert class name to file name: WPGamify_XP_Engine -> class-xp-engine.php
     $file_name = 'class-' . str_replace( '_', '-', strtolower(
         preg_replace( '/^WPGamify_/', '', $class )
@@ -266,6 +276,18 @@ add_action( 'wpgamify_daily_maintenance', function (): void {
         WPGamify_XP_Expiry::warn();
         WPGamify_XP_Expiry::check();
     }
+
+    // Grace period: process expired grace periods (level downgrades).
+    if ( class_exists( 'WPGamify_Level_Manager' ) && method_exists( 'WPGamify_Level_Manager', 'process_grace_expirations' ) ) {
+        WPGamify_Level_Manager::process_grace_expirations();
+    }
+
+    // Cleanup stale order XP lock keys (older than 7 days).
+    $wpdb->query( $wpdb->prepare(
+        "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value < %s",
+        $wpdb->esc_like( '_wpgamify_order_xp_lock_' ) . '%',
+        gmdate( 'Y-m-d H:i:s', time() - 7 * DAY_IN_SECONDS )
+    ) );
 });
 
 /* ─── Plugin Action Links ───────────────────────────────────────────── */

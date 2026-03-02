@@ -36,13 +36,14 @@ class WPGamify_XP_Expiry {
 
         $current_month = wp_date( 'Y-m', null, wp_timezone() );
 
-        // Find users with positive XP earned before cutoff (excluding already-expired entries).
+        // Find users with net positive XP before cutoff (gains minus previous expiry deductions).
         $expired_users = $wpdb->get_results( $wpdb->prepare(
-            "SELECT user_id, SUM(amount) as expired_xp
+            "SELECT user_id,
+                    SUM(CASE WHEN amount > 0 AND source != 'xp_expired' THEN amount
+                             WHEN source = 'xp_expired' THEN amount
+                             ELSE 0 END) as expired_xp
              FROM {$table}
              WHERE created_at <= %s
-             AND amount > 0
-             AND source != 'xp_expired'
              GROUP BY user_id
              HAVING expired_xp > 0
              LIMIT 500",
@@ -63,12 +64,15 @@ class WPGamify_XP_Expiry {
                 continue;
             }
 
-            // Monthly guard to prevent double processing.
+            // Monthly guard to prevent double processing (atomic INSERT IGNORE).
             $guard_key = '_wpgamify_xp_expiry_' . $current_month;
-            if ( get_user_meta( $user_id, $guard_key, true ) ) {
-                continue;
+            $inserted  = $wpdb->query( $wpdb->prepare(
+                "INSERT IGNORE INTO {$wpdb->usermeta} (user_id, meta_key, meta_value) VALUES (%d, %s, %s)",
+                $user_id, $guard_key, current_time( 'mysql' )
+            ) );
+            if ( ! $inserted ) {
+                continue; // Guard already set by another process.
             }
-            update_user_meta( $user_id, $guard_key, current_time( 'mysql' ) );
 
             // Deduct expired XP.
             WPGamify_XP_Engine::deduct(
@@ -139,12 +143,15 @@ class WPGamify_XP_Expiry {
             $user_id     = (int) $row->user_id;
             $expiring_xp = (int) $row->expiring_xp;
 
-            // Monthly warning guard.
+            // Monthly warning guard (atomic INSERT IGNORE).
             $warn_key = '_wpgamify_xp_warn_' . $current_month;
-            if ( get_user_meta( $user_id, $warn_key, true ) ) {
+            $inserted = $wpdb->query( $wpdb->prepare(
+                "INSERT IGNORE INTO {$wpdb->usermeta} (user_id, meta_key, meta_value) VALUES (%d, %s, %s)",
+                $user_id, $warn_key, current_time( 'mysql' )
+            ) );
+            if ( ! $inserted ) {
                 continue;
             }
-            update_user_meta( $user_id, $warn_key, current_time( 'mysql' ) );
 
             /**
              * Fires when XP is about to expire for a user.

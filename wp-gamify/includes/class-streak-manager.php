@@ -56,7 +56,7 @@ class WPGamify_Streak_Manager {
             $streak_xp = self::calculate_streak_xp( 1 );
 
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery
-            $wpdb->insert(
+            $inserted = $wpdb->insert(
                 $table,
                 [
                     'user_id'            => $user_id,
@@ -68,6 +68,13 @@ class WPGamify_Streak_Manager {
                 ],
                 [ '%d', '%d', '%d', '%s', '%d', '%s' ]
             );
+
+            if ( $inserted === false ) {
+                if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                    error_log( 'WP Gamify Streak: insert failed for user ' . $user_id );
+                }
+                return;
+            }
 
             self::award_streak_xp( $user_id, $streak_xp, 1 );
             self::run_bonus_checks( $user_id );
@@ -334,7 +341,7 @@ class WPGamify_Streak_Manager {
 
         // Award XP.
         if ( class_exists( 'WPGamify_XP_Engine' ) ) {
-            WPGamify_XP_Engine::award( $user_id, $xp, 'birthday', null, 'Dogum gunu XP odulu' );
+            WPGamify_XP_Engine::award( $user_id, $xp, 'birthday', '', 'Dogum gunu XP odulu' );
         }
 
         // Set guard to prevent duplicate awards this year.
@@ -402,7 +409,7 @@ class WPGamify_Streak_Manager {
                 $user_id,
                 $xp,
                 'anniversary',
-                null,
+                '',
                 sprintf( '%d. yil uyelik yildonumu XP odulu', $years_member )
             );
         }
@@ -437,7 +444,7 @@ class WPGamify_Streak_Manager {
                 $user_id,
                 $xp,
                 'streak',
-                null,
+                '',
                 sprintf( 'Streak Gun %d - %d XP', $streak_day, $xp )
             );
         }

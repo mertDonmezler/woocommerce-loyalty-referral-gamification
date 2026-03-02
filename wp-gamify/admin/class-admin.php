@@ -351,6 +351,9 @@ class WPGamify_Admin {
             wp_send_json_error( [ 'message' => 'Kullanici bulunamadi.' ] );
         }
 
+        // Capture XP BEFORE the action for accurate audit logging.
+        $before_xp = WPGamify_XP_Engine::get_total_xp( $user_id );
+
         if ( $action === 'deduct' ) {
             $result = WPGamify_XP_Engine::deduct( $user_id, $amount, 'manual_admin', '', $reason );
         } else {
@@ -361,8 +364,8 @@ class WPGamify_Admin {
             wp_send_json_error( [ 'message' => 'XP islemi basarisiz oldu.' ] );
         }
 
-        // Log to audit table.
-        $this->log_audit( $user_id, $action, $amount, $reason );
+        // Log to audit table with correct before/after values.
+        $this->log_audit( $user_id, $action, $amount, $reason, $before_xp );
 
         $new_total = WPGamify_XP_Engine::get_total_xp( $user_id );
 
@@ -532,6 +535,8 @@ class WPGamify_Admin {
             'xp_order_base', 'xp_order_per_currency', 'xp_first_order_bonus',
             'xp_review_amount', 'xp_review_min_chars', 'xp_login_amount',
             'xp_birthday_amount', 'xp_anniversary_amount', 'xp_registration_amount',
+            'xp_profile_amount', 'xp_referral_amount',
+            'xp_expiry_days', 'xp_expiry_warn_days',
             'streak_base_xp', 'streak_max_day', 'streak_tolerance',
             'level_rolling_months', 'level_grace_days', 'daily_xp_cap',
         ];
@@ -539,8 +544,9 @@ class WPGamify_Admin {
         $bool_keys  = [
             'xp_order_enabled', 'xp_review_enabled', 'xp_login_enabled',
             'xp_birthday_enabled', 'xp_anniversary_enabled', 'xp_registration_enabled',
+            'xp_profile_enabled', 'xp_referral_enabled',
             'streak_enabled', 'streak_cycle_reset', 'duplicate_review_block',
-            'keep_data_on_uninstall',
+            'xp_expiry_enabled', 'keep_data_on_uninstall',
         ];
         $text_keys  = [
             'level_mode', 'currency_label', 'campaign_label',
@@ -589,19 +595,23 @@ class WPGamify_Admin {
      * @param int    $amount  XP amount.
      * @param string $reason  Reason.
      */
-    private function log_audit( int $user_id, string $action, int $amount, string $reason ): void {
+    /**
+     * @param int    $before_xp XP BEFORE the action was applied.
+     */
+    private function log_audit( int $user_id, string $action, int $amount, string $reason, int $before_xp = 0 ): void {
         global $wpdb;
         $table = $wpdb->prefix . 'gamify_audit_log';
 
-        $previous_xp = WPGamify_XP_Engine::get_total_xp( $user_id );
+        // The after_value is the current total (log_audit is called AFTER the XP change).
+        $after_xp = WPGamify_XP_Engine::get_total_xp( $user_id );
 
         $wpdb->insert( $table, [
             'admin_id'       => get_current_user_id(),
             'target_user_id' => $user_id,
             'action'         => $action,
             'amount'         => $amount,
-            'before_value'   => $previous_xp,
-            'after_value'    => $action === 'deduct' ? $previous_xp - $amount : $previous_xp + $amount,
+            'before_value'   => $before_xp,
+            'after_value'    => $after_xp,
             'reason'         => $reason,
             'created_at'     => current_time( 'mysql' ),
         ], [ '%d', '%d', '%s', '%d', '%d', '%d', '%s', '%s' ] );
@@ -649,13 +659,15 @@ class WPGamify_Admin {
      * Wizard step 2: Save XP source toggles.
      */
     private function wizard_save_xp_settings(): void {
-        $settings = [
+        // Only merge wizard fields into existing settings (don't reset everything).
+        $wizard_settings = [
             'xp_order_enabled'  => ! empty( $_POST['order_xp_enabled'] ),
             'xp_review_enabled' => ! empty( $_POST['review_xp_enabled'] ),
             'xp_login_enabled'  => ! empty( $_POST['login_xp_enabled'] ),
             'streak_enabled'    => ! empty( $_POST['streak_enabled'] ),
         ];
-        WPGamify_Settings::save( $settings );
+        $existing = WPGamify_Settings::get_all();
+        WPGamify_Settings::save( array_merge( $existing, $wizard_settings ) );
         wp_send_json_success( [ 'message' => 'XP ayarlari kaydedildi.' ] );
     }
 

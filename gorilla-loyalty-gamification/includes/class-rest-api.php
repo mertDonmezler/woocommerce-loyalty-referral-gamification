@@ -20,14 +20,14 @@ function gorilla_lg_register_rest_routes() {
     register_rest_route($namespace, '/me', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'gorilla_lg_rest_get_me',
-        'permission_callback' => 'gorilla_lg_rest_check_auth',
+        'permission_callback' => 'gorilla_lg_rest_check_auth_self',
     ));
 
     // GET /tier - User tier info
     register_rest_route($namespace, '/tier', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'gorilla_lg_rest_get_tier',
-        'permission_callback' => 'gorilla_lg_rest_check_auth',
+        'permission_callback' => 'gorilla_lg_rest_check_auth_self',
     ));
 
     // GET /tiers - All tiers (public)
@@ -41,7 +41,7 @@ function gorilla_lg_register_rest_routes() {
     register_rest_route($namespace, '/badges', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'gorilla_lg_rest_get_badges',
-        'permission_callback' => 'gorilla_lg_rest_check_auth',
+        'permission_callback' => 'gorilla_lg_rest_check_auth_self',
     ));
 
     // GET /leaderboard
@@ -49,27 +49,43 @@ function gorilla_lg_register_rest_routes() {
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'gorilla_lg_rest_get_leaderboard',
         'permission_callback' => 'gorilla_lg_rest_check_auth',
+        'args'                => array(
+            'period' => array(
+                'default'           => 'monthly',
+                'sanitize_callback' => 'sanitize_key',
+                'validate_callback' => function($param) {
+                    return in_array($param, array('monthly', 'alltime', 'weekly'), true);
+                },
+            ),
+            'limit' => array(
+                'default'           => 10,
+                'sanitize_callback' => 'absint',
+                'validate_callback' => function($param) {
+                    return is_numeric($param) && (int)$param > 0 && (int)$param <= 50;
+                },
+            ),
+        ),
     ));
 
     // GET /milestones
     register_rest_route($namespace, '/milestones', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'gorilla_lg_rest_get_milestones',
-        'permission_callback' => 'gorilla_lg_rest_check_auth',
+        'permission_callback' => 'gorilla_lg_rest_check_auth_self',
     ));
 
     // GET /shop
     register_rest_route($namespace, '/shop', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'gorilla_lg_rest_get_shop',
-        'permission_callback' => 'gorilla_lg_rest_check_auth',
+        'permission_callback' => 'gorilla_lg_rest_check_auth_self',
     ));
 
     // POST /shop/redeem
     register_rest_route($namespace, '/shop/redeem', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'gorilla_lg_rest_shop_redeem',
-        'permission_callback' => 'gorilla_lg_rest_check_auth',
+        'permission_callback' => 'gorilla_lg_rest_check_auth_self',
         'args'                => array(
             'reward_id' => array(
                 'required'          => true,
@@ -88,21 +104,21 @@ function gorilla_lg_register_rest_routes() {
     register_rest_route($namespace, '/streak', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'gorilla_lg_rest_get_streak',
-        'permission_callback' => 'gorilla_lg_rest_check_auth',
+        'permission_callback' => 'gorilla_lg_rest_check_auth_self',
     ));
 
     // GET /qr
     register_rest_route($namespace, '/qr', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'gorilla_lg_rest_get_qr',
-        'permission_callback' => 'gorilla_lg_rest_check_auth',
+        'permission_callback' => 'gorilla_lg_rest_check_auth_self',
     ));
 
     // POST /social/share
     register_rest_route($namespace, '/social/share', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'gorilla_lg_rest_social_share',
-        'permission_callback' => 'gorilla_lg_rest_check_auth',
+        'permission_callback' => 'gorilla_lg_rest_check_auth_self',
         'args' => array(
             'platform' => array(
                 'required'          => true,
@@ -114,11 +130,11 @@ function gorilla_lg_register_rest_routes() {
         ),
     ));
 
-    // GET /settings - Loyalty settings
+    // GET /settings - Loyalty settings (public feature flags, no sensitive data)
     register_rest_route($namespace, '/settings', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'gorilla_lg_rest_get_settings',
-        'permission_callback' => 'gorilla_lg_rest_check_auth',
+        'permission_callback' => '__return_true',
     ));
 
     // Admin endpoints
@@ -147,14 +163,14 @@ function gorilla_lg_register_rest_routes() {
         register_rest_route($lr_namespace, '/credit', array(
             'methods'             => WP_REST_Server::READABLE,
             'callback'            => 'gorilla_lg_rest_get_credit',
-            'permission_callback' => 'gorilla_lg_rest_check_auth',
+            'permission_callback' => 'gorilla_lg_rest_check_auth_self',
         ));
     }
     if (!gorilla_lg_route_exists($lr_namespace, '/credit/log')) {
         register_rest_route($lr_namespace, '/credit/log', array(
             'methods'             => WP_REST_Server::READABLE,
             'callback'            => 'gorilla_lg_rest_get_credit_log',
-            'permission_callback' => 'gorilla_lg_rest_check_auth',
+            'permission_callback' => 'gorilla_lg_rest_check_auth_self',
             'args' => array(
                 'limit' => array('default' => 20, 'sanitize_callback' => 'absint', 'validate_callback' => function($param) { return is_numeric($param) && $param > 0 && $param <= 100; }),
             ),
@@ -162,8 +178,34 @@ function gorilla_lg_register_rest_routes() {
     }
 }
 
+/**
+ * Permission callback: any authenticated user (used for shared/social endpoints like leaderboard).
+ */
 function gorilla_lg_rest_check_auth() {
     return is_user_logged_in();
+}
+
+/**
+ * Permission callback: authenticated user acting on their own data, or a WooCommerce admin.
+ * Accepts an optional 'user_id' parameter for admin cross-user lookups.
+ *
+ * @param WP_REST_Request $request
+ * @return bool
+ */
+function gorilla_lg_rest_check_auth_self( WP_REST_Request $request ) {
+    if ( ! is_user_logged_in() ) {
+        return false;
+    }
+
+    $requested_user_id = $request->get_param('user_id');
+    if ( null !== $requested_user_id ) {
+        // If a user_id param is supplied, it must match the current user or the caller must be admin.
+        return (int) $requested_user_id === get_current_user_id()
+            || current_user_can( 'manage_woocommerce' );
+    }
+
+    // No user_id param: endpoint operates on current user, which is always safe.
+    return true;
 }
 
 // ── /me ─────────────────────────────────────────────────
@@ -281,8 +323,29 @@ function gorilla_lg_rest_get_leaderboard(WP_REST_Request $request) {
     if (!function_exists('gorilla_xp_get_leaderboard')) {
         return new WP_Error('not_available', 'Leaderboard kullanilamiyor.', array('status' => 503));
     }
+
+    $period = $request->get_param('period') ?: 'monthly';
+    $limit  = absint($request->get_param('limit') ?: 10);
+
+    $raw_entries = gorilla_xp_get_leaderboard($period, $limit);
+    if (!is_array($raw_entries)) {
+        $raw_entries = array();
+    }
+
+    // C7 fix: strip user_id — return only safe, public-facing fields.
+    $safe_entries = array();
+    foreach ($raw_entries as $index => $entry) {
+        $safe_entries[] = array(
+            'rank'         => $index + 1,
+            'display_name' => isset($entry['display_name']) ? sanitize_text_field($entry['display_name']) : __('Anonim', 'gorilla-loyalty'),
+            'avatar_url'   => isset($entry['user_id']) ? get_avatar_url((int) $entry['user_id'], array('size' => 48)) : '',
+            'xp'           => isset($entry['xp']) ? (int) $entry['xp'] : 0,
+        );
+        // user_id is intentionally excluded from the response.
+    }
+
     return new WP_REST_Response(array(
-        'leaderboard' => gorilla_xp_get_leaderboard('monthly', 10),
+        'leaderboard' => $safe_entries,
         'enabled'     => get_option('gorilla_lr_leaderboard_enabled') === 'yes',
     ), 200);
 }
@@ -380,6 +443,8 @@ function gorilla_lg_rest_social_share(WP_REST_Request $request) {
 }
 
 // ── /settings ───────────────────────────────────────────
+// Medium fix: removed 'version' field — plugin version must not be exposed publicly
+// as it aids fingerprinting and targeted exploit research.
 function gorilla_lg_rest_get_settings(WP_REST_Request $request) {
     return new WP_REST_Response(array(
         'loyalty_enabled'    => get_option('gorilla_lr_enabled_loyalty') === 'yes',
@@ -389,7 +454,6 @@ function gorilla_lg_rest_get_settings(WP_REST_Request $request) {
         'spin_enabled'       => get_option('gorilla_lr_spin_enabled') === 'yes',
         'streak_enabled'     => class_exists('WPGamify_Settings') && (bool) WPGamify_Settings::get('streak_enabled', true),
         'period_months'      => intval(get_option('gorilla_lr_period_months', 6)),
-        'version'            => defined('GORILLA_LG_VERSION') ? GORILLA_LG_VERSION : '3.1.0',
     ), 200);
 }
 

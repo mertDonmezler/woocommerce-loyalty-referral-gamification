@@ -101,83 +101,98 @@ if (!function_exists('gorilla_credit_check_expiry')) {
         // Check if table exists
         if (!gorilla_lr_table_exists($table)) return;
 
-        // Check if expires_at column exists (upgrade scenario)
-        $columns = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM {$table} LIKE %s", 'expires_at'));
-        if (empty($columns)) return;
+        // Check if expires_at column exists (upgrade scenario) - cached per request
+        static $has_expires_col = null;
+        if ($has_expires_col === null) {
+            $columns = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM {$table} LIKE %s", 'expires_at'));
+            $has_expires_col = !empty($columns);
+        }
+        if (!$has_expires_col) return;
 
-        // Find records expiring today
+        // Find records expiring today - paginated to prevent memory issues
         $now = current_time('mysql');
-        $expired = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT user_id, SUM(amount) as total_expired
-                 FROM {$table}
-                 WHERE expires_at IS NOT NULL
-                 AND expires_at <= %s
-                 AND amount > 0
-                 AND type NOT IN ('expired', 'expired_processed')
-                 GROUP BY user_id
-                 LIMIT 500",
-                $now
-            )
-        );
+        $batch_size = 100;
+        $offset = 0;
 
-        foreach ($expired as $row) {
-            $user_id = intval($row->user_id);
-            $expire_amount = floatval($row->total_expired);
+        do {
+            $expired = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT user_id, SUM(amount) as total_expired
+                     FROM {$table}
+                     WHERE expires_at IS NOT NULL
+                     AND expires_at <= %s
+                     AND amount > 0
+                     AND type NOT IN ('expired', 'expired_processed')
+                     GROUP BY user_id
+                     LIMIT %d OFFSET %d",
+                    $now,
+                    $batch_size,
+                    $offset
+                )
+            );
 
-            if ($expire_amount > 0) {
-                // Atomic operation with transaction
-                $wpdb->query('START TRANSACTION');
+            if (empty($expired)) break;
 
-                try {
-                    // Lock and read balance
-                    $current = $wpdb->get_var($wpdb->prepare(
-                        "SELECT meta_value FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = '_gorilla_store_credit' FOR UPDATE",
-                        $user_id
-                    ));
-                    $current = floatval($current);
-                    $new_balance = max(0, $current - $expire_amount);
+            foreach ($expired as $row) {
+                $user_id = intval($row->user_id);
+                $expire_amount = floatval($row->total_expired);
 
-                    // Update balance
-                    $wpdb->update(
-                        $wpdb->usermeta,
-                        array('meta_value' => $new_balance),
-                        array('user_id' => $user_id, 'meta_key' => '_gorilla_store_credit'),
-                        array('%f'),
-                        array('%d', '%s')
-                    );
+                if ($expire_amount > 0) {
+                    // Atomic operation with transaction
+                    $wpdb->query('START TRANSACTION');
 
-                    // Log the expiry
-                    $wpdb->insert($table, array(
-                        'user_id'       => $user_id,
-                        'amount'        => -$expire_amount,
-                        'balance_after' => $new_balance,
-                        'type'          => 'expired',
-                        'reason'        => __('Store credit suresi doldu', 'gorilla-lr'),
-                        'reference_id'  => null,
-                        'created_at'    => current_time('mysql'),
-                        'expires_at'    => null,
-                    ), array('%d', '%f', '%f', '%s', '%s', '%d', '%s', '%s'));
+                    try {
+                        // Lock and read balance
+                        $current = $wpdb->get_var($wpdb->prepare(
+                            "SELECT meta_value FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = '_gorilla_store_credit' FOR UPDATE",
+                            $user_id
+                        ));
+                        $current = floatval($current);
+                        $new_balance = max(0, $current - $expire_amount);
 
-                    // Mark old records as processed (prevent re-processing)
-                    $wpdb->query(
-                        $wpdb->prepare(
-                            "UPDATE {$table} SET type = 'expired_processed' WHERE user_id = %d AND expires_at <= %s AND amount > 0 AND type NOT IN ('expired', 'expired_processed')",
-                            $user_id, $now
-                        )
-                    );
+                        // Update balance
+                        $wpdb->update(
+                            $wpdb->usermeta,
+                            array('meta_value' => $new_balance),
+                            array('user_id' => $user_id, 'meta_key' => '_gorilla_store_credit'),
+                            array('%f'),
+                            array('%d', '%s')
+                        );
 
-                    $wpdb->query('COMMIT');
-                    wp_cache_delete($user_id, 'user_meta');
+                        // Log the expiry
+                        $wpdb->insert($table, array(
+                            'user_id'       => $user_id,
+                            'amount'        => -$expire_amount,
+                            'balance_after' => $new_balance,
+                            'type'          => 'expired',
+                            'reason'        => __('Store credit suresi doldu', 'gorilla-lr'),
+                            'reference_id'  => null,
+                            'created_at'    => current_time('mysql'),
+                            'expires_at'    => null,
+                        ), array('%d', '%f', '%f', '%s', '%s', '%d', '%s', '%s'));
 
-                } catch (\Throwable $e) {
-                    $wpdb->query('ROLLBACK');
-                    if (defined('WP_DEBUG') && WP_DEBUG) {
-                        error_log('Gorilla SC credit expiry error for user ' . $user_id . ': ' . $e->getMessage());
+                        // Mark old records as processed (prevent re-processing)
+                        $wpdb->query(
+                            $wpdb->prepare(
+                                "UPDATE {$table} SET type = 'expired_processed' WHERE user_id = %d AND expires_at <= %s AND amount > 0 AND type NOT IN ('expired', 'expired_processed')",
+                                $user_id, $now
+                            )
+                        );
+
+                        $wpdb->query('COMMIT');
+                        wp_cache_delete($user_id, 'user_meta');
+
+                    } catch (\Throwable $e) {
+                        $wpdb->query('ROLLBACK');
+                        if (defined('WP_DEBUG') && WP_DEBUG) {
+                            error_log('Gorilla SC credit expiry error for user ' . $user_id . ': ' . $e->getMessage());
+                        }
                     }
                 }
             }
-        }
+
+            $offset += $batch_size;
+        } while (count($expired) === $batch_size);
     }
     add_action('gorilla_sc_daily_check', 'gorilla_credit_check_expiry');
 }
@@ -238,7 +253,53 @@ if (!function_exists('gorilla_credit_checkout_ui')) {
         </div>
         <?php
     }
+    // Classic Checkout hook.
     add_action('woocommerce_review_order_before_payment', 'gorilla_credit_checkout_ui');
+    // Block Checkout: render via woocommerce_checkout_order_review (fires in both classic and block).
+    add_action('woocommerce_checkout_order_review', 'gorilla_credit_checkout_ui', 30);
+}
+
+// -- Block Checkout Integration --
+if (!function_exists('gorilla_credit_block_checkout_init')) {
+    function gorilla_credit_block_checkout_init() {
+        if (!class_exists('Automattic\WooCommerce\Blocks\Integrations\IntegrationInterface')) {
+            return;
+        }
+
+        add_action('woocommerce_blocks_checkout_block_registration', function($integration_registry) {
+            // Register a lightweight integration to ensure store credit data is available.
+            $integration_registry->register(new class implements \Automattic\WooCommerce\Blocks\Integrations\IntegrationInterface {
+                public function get_name() { return 'gorilla-store-credit'; }
+                public function initialize() {}
+                public function get_script_handles() { return []; }
+                public function get_editor_script_handles() { return []; }
+                public function get_script_data() {
+                    if (!is_user_logged_in()) return [];
+                    $credit = gorilla_credit_get_balance(get_current_user_id());
+                    return [
+                        'credit_balance' => $credit,
+                        'formatted_balance' => strip_tags(wc_price($credit)),
+                    ];
+                }
+            });
+        });
+
+        // Ensure store credit fee persists across Block Checkout's store API calls.
+        add_action('woocommerce_store_api_checkout_update_order_from_request', function($order) {
+            if (!is_user_logged_in() || !function_exists('WC') || !WC() || !WC()->session) return;
+            if (!WC()->session->get('gorilla_use_credit')) return;
+
+            $amount = floatval(WC()->session->get('gorilla_credit_amount', 0));
+            if ($amount <= 0) return;
+
+            $credit = gorilla_credit_get_balance(get_current_user_id());
+            $apply = min($amount, $credit, (float) $order->get_total());
+            if ($apply > 0.01) {
+                $order->add_meta_data('_gorilla_credit_applied', $apply, true);
+            }
+        });
+    }
+    add_action('woocommerce_blocks_loaded', 'gorilla_credit_block_checkout_init');
 }
 
 // -- AJAX: Set Credit Amount --
@@ -304,9 +365,11 @@ if (!function_exists('gorilla_credit_apply_to_cart')) {
 }
 
 
-// -- After Checkout: Deduct Balance --
+// -- After Checkout: Deduct Balance (with GET_LOCK to prevent TOCTOU double-spend) --
 if (!function_exists('gorilla_credit_deduct_on_checkout')) {
     function gorilla_credit_deduct_on_checkout($order_id) {
+        global $wpdb;
+
         if (!is_user_logged_in()) return;
         if (!function_exists('WC') || !WC() || !WC()->session) return;
         if (!WC()->session->get('gorilla_use_credit')) return;
@@ -317,67 +380,119 @@ if (!function_exists('gorilla_credit_deduct_on_checkout')) {
         $user_id = $order->get_customer_id();
         if (!$user_id) return;
 
-        // Idempotency guard - prevent double deduction
-        if ($order->get_meta('_gorilla_credit_deducted') === 'yes') return;
-        $order->update_meta_data('_gorilla_credit_deducted', 'yes');
-        $order->save();
-
-        foreach ($order->get_fees() as $fee) {
-            if (strpos($fee->get_name(), 'Store Credit') !== false) {
-                $deducted = abs(floatval($fee->get_total()));
-                if ($deducted > 0) {
-                    gorilla_credit_adjust(
-                        $user_id,
-                        -$deducted,
-                        'debit',
-                        sprintf('Siparis #%d icin kullanildi', $order_id),
-                        $order_id
-                    );
-                    $order->add_order_note(sprintf('Store Credit: %s kullanildi.', wc_price($deducted)));
-                }
-                break;
+        // Acquire MySQL advisory lock to serialize credit operations for this user
+        $lock_key = 'gorilla_credit_' . $user_id;
+        $lock = $wpdb->get_var($wpdb->prepare("SELECT GET_LOCK(%s, 5)", $lock_key));
+        if (!$lock) {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('Gorilla SC: could not acquire lock for user ' . $user_id . ' on order ' . $order_id);
             }
+            return;
         }
 
-        // Clear session
-        if (function_exists('WC') && WC() && WC()->session) {
-            WC()->session->set('gorilla_use_credit', false);
+        try {
+            // Re-read order meta inside the lock to prevent TOCTOU race
+            $order = wc_get_order($order_id);
+            if (!$order) return;
+
+            // Idempotency guard - prevent double deduction
+            if ($order->get_meta('_gorilla_credit_deducted') === 'yes') return;
+
+            // Verify user still has sufficient balance before deducting
+            $current_balance = gorilla_credit_get_balance($user_id);
+
+            foreach ($order->get_fees() as $fee) {
+                if (strpos($fee->get_name(), 'Store Credit') !== false) {
+                    $deducted = abs(floatval($fee->get_total()));
+                    if ($deducted > 0) {
+                        // Clamp to actual available balance to prevent negative balance
+                        $deducted = min($deducted, $current_balance);
+                        if ($deducted <= 0) break;
+
+                        // Mark as deducted BEFORE the actual adjustment (inside lock)
+                        $order->update_meta_data('_gorilla_credit_deducted', 'yes');
+                        $order->save();
+
+                        gorilla_credit_adjust(
+                            $user_id,
+                            -$deducted,
+                            'debit',
+                            sprintf('Siparis #%d icin kullanildi', $order_id),
+                            $order_id
+                        );
+                        $order->add_order_note(sprintf('Store Credit: %s kullanildi.', wc_price($deducted)));
+                    }
+                    break;
+                }
+            }
+
+            // Clear session
+            if (function_exists('WC') && WC() && WC()->session) {
+                WC()->session->set('gorilla_use_credit', false);
+            }
+        } finally {
+            $wpdb->query($wpdb->prepare("SELECT RELEASE_LOCK(%s)", $lock_key));
         }
     }
     add_action('woocommerce_checkout_order_processed', 'gorilla_credit_deduct_on_checkout', 10, 1);
 }
 
 
-// -- Order cancel/refund: return credit --
+// -- Order cancel/refund: return credit (with GET_LOCK to prevent TOCTOU double-refund) --
 if (!function_exists('gorilla_credit_refund_on_cancel')) {
     function gorilla_credit_refund_on_cancel($order_id) {
+        global $wpdb;
+
         $order = wc_get_order($order_id);
         if (!$order) return;
 
         $user_id = $order->get_customer_id();
         if (!$user_id) return;
 
-        // Check if credit was used for this order
-        foreach ($order->get_fees() as $fee) {
-            if (strpos($fee->get_name(), 'Store Credit') !== false) {
-                $refund = abs(floatval($fee->get_total()));
-                if ($refund > 0) {
-                    // Idempotency guard
-                    if ($order->get_meta('_gorilla_credit_refunded') === 'yes') return;
-                    $order->update_meta_data('_gorilla_credit_refunded', 'yes');
-                    $order->save();
+        // Early bail if credit was never deducted for this order
+        if ($order->get_meta('_gorilla_credit_deducted') !== 'yes') return;
 
-                    gorilla_credit_adjust(
-                        $user_id,
-                        $refund,
-                        'refund',
-                        sprintf('Siparis #%d iptali - credit iadesi', $order_id),
-                        $order_id
-                    );
-                    $order->add_order_note(sprintf('Store Credit Iade: %s geri yuklendi.', wc_price($refund)));
-                }
-                break;
+        // Acquire MySQL advisory lock to serialize credit operations for this user
+        $lock_key = 'gorilla_credit_' . $user_id;
+        $lock = $wpdb->get_var($wpdb->prepare("SELECT GET_LOCK(%s, 5)", $lock_key));
+        if (!$lock) {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('Gorilla SC: could not acquire refund lock for user ' . $user_id . ' on order ' . $order_id);
             }
+            return;
+        }
+
+        try {
+            // Re-read order meta inside the lock to prevent TOCTOU race
+            $order = wc_get_order($order_id);
+            if (!$order) return;
+
+            // Idempotency guard - check inside lock to prevent double-refund
+            if ($order->get_meta('_gorilla_credit_refunded') === 'yes') return;
+
+            // Check if credit was used for this order
+            foreach ($order->get_fees() as $fee) {
+                if (strpos($fee->get_name(), 'Store Credit') !== false) {
+                    $refund = abs(floatval($fee->get_total()));
+                    if ($refund > 0) {
+                        // Mark as refunded BEFORE the actual adjustment (inside lock)
+                        $order->update_meta_data('_gorilla_credit_refunded', 'yes');
+                        $order->save();
+
+                        gorilla_credit_adjust(
+                            $user_id,
+                            $refund,
+                            'refund',
+                            sprintf('Siparis #%d iptali - credit iadesi', $order_id),
+                            $order_id
+                        );
+                        $order->add_order_note(sprintf('Store Credit Iade: %s geri yuklendi.', wc_price($refund)));
+                    }
+                    break;
+                }
+            }
+        } finally {
+            $wpdb->query($wpdb->prepare("SELECT RELEASE_LOCK(%s)", $lock_key));
         }
     }
     add_action('woocommerce_order_status_cancelled', 'gorilla_credit_refund_on_cancel');

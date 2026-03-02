@@ -83,7 +83,7 @@ function gorilla_email_tier_upgrade($user_id, $old_tier, $new_tier) {
     $subject = sprintf('Tebrikler! %s Seviyesine Yukseldiniz! - %s', $new_tier['label'] ?? 'Yeni', get_bloginfo('name'));
     $message = gorilla_email_template('Seviye Yukseltmesi!', sprintf(
         '<p>Merhaba %s,</p><p>%s %s seviyesine yukseldiniz! %%%d indirim kazandiniz.</p><p><a href="%s">Alisverise Basla</a></p>',
-        esc_html($user->display_name), $new_tier['emoji'] ?? '', esc_html($new_tier['label'] ?? ''), intval($new_tier['discount'] ?? 0), esc_url($shop_url)
+        esc_html($user->display_name), esc_html($new_tier['emoji'] ?? ''), esc_html($new_tier['label'] ?? ''), intval($new_tier['discount'] ?? 0), esc_url($shop_url)
     ));
     gorilla_send_email($user->user_email, $subject, $message);
 }
@@ -102,7 +102,7 @@ function gorilla_email_level_up($user_id, $old_level, $new_level) {
     $subject = sprintf('Tebrikler! %s Seviyesine Yukseldiniz! - %s', $new_level['label'] ?? 'Yeni', get_bloginfo('name'));
     $message = gorilla_email_template('Level Atladiniz!', sprintf(
         '<p>Merhaba %s,</p><p>%s %s seviyesine yukseldiniz!</p><p><a href="%s">Hesabima Git</a></p>',
-        esc_html($user->display_name), $new_level['emoji'] ?? '', esc_html($new_level['label'] ?? ''), esc_url($account_url)
+        esc_html($user->display_name), esc_html($new_level['emoji'] ?? ''), esc_html($new_level['label'] ?? ''), esc_url($account_url)
     ));
     gorilla_send_email($user->user_email, $subject, $message);
 }
@@ -120,7 +120,7 @@ function gorilla_email_birthday($user_id, $xp_amount, $credit_amount) {
     $subject = 'Dogum Gununuz Kutlu Olsun! - ' . get_bloginfo('name');
     $gifts = '';
     if ($xp_amount > 0) $gifts .= intval($xp_amount) . ' XP + ';
-    if ($credit_amount > 0) $gifts .= wc_price($credit_amount) . ' credit';
+    if ($credit_amount > 0) $gifts .= wp_kses_post(wc_price($credit_amount)) . ' credit';
     $message = gorilla_email_template('Dogum Gununuz Kutlu Olsun!', sprintf(
         '<p>Merhaba %s,</p><p>Hediyeleriniz: %s</p><p><a href="%s">Alisverise Basla</a></p>',
         esc_html($user->display_name), $gifts, esc_url($shop_url)
@@ -203,7 +203,7 @@ function gorilla_email_badge_earned($user_id, $badge_id) {
     $subject = sprintf('Yeni Rozet Kazandiniz: %s - %s', $badge['label'] ?? '', get_bloginfo('name'));
     $message = gorilla_email_template('Yeni Rozet!', sprintf(
         '<p>Merhaba %s,</p><p>%s %s rozetini kazandiniz!</p><p><a href="%s">Rozetlerimi Gor</a></p>',
-        esc_html($user->display_name), $badge['emoji'] ?? '', esc_html($badge['label'] ?? ''), esc_url($account_url)
+        esc_html($user->display_name), esc_html($badge['emoji'] ?? ''), esc_html($badge['label'] ?? ''), esc_url($account_url)
     ));
     gorilla_send_email($user->user_email, $subject, $message);
 }

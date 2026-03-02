@@ -90,12 +90,12 @@ class Gorilla_Email_Tier_Upgrade extends Gorilla_Email_Base {
             </p>
             <p style="color:#888; font-size:13px; text-align:center;">Seviye detaylarinizi <a href="%s">hesabinizdan</a> gorebilirsiniz.</p>',
             esc_html($user->display_name),
-            $new_tier['emoji'] ?? '',
+            esc_html($new_tier['emoji'] ?? ''),
             esc_html($new_tier['label'] ?? 'Yeni'),
             esc_attr($new_tier['color'] ?? '#999'),
             esc_attr($new_tier['color'] ?? '#999'),
             esc_attr($new_tier['color'] ?? '#999'),
-            $new_tier['emoji'] ?? '',
+            esc_html($new_tier['emoji'] ?? ''),
             esc_html($new_tier['label'] ?? 'Yeni'),
             intval($new_tier['discount'] ?? 0),
             $benefits,
@@ -191,8 +191,8 @@ class Gorilla_Email_Tier_Downgrade extends Gorilla_Email_Base {
 
         $this->recipient = $user->user_email;
         $shop_url  = wc_get_page_permalink('shop');
-        $new_label = $new_tier ? ($new_tier['emoji'] . ' ' . $new_tier['label']) : 'Uye';
-        $old_label = $old_tier ? ($old_tier['emoji'] . ' ' . $old_tier['label']) : '';
+        $new_label = $new_tier ? (esc_html($new_tier['emoji']) . ' ' . esc_html($new_tier['label'])) : 'Uye';
+        $old_label = $old_tier ? (esc_html($old_tier['emoji']) . ' ' . esc_html($old_tier['label'])) : '';
 
         $this->email_data = array('user_name' => $user->display_name);
 
@@ -209,9 +209,9 @@ class Gorilla_Email_Tier_Downgrade extends Gorilla_Email_Base {
                 <a href="%s" style="display:inline-block; padding:14px 36px; background:linear-gradient(135deg, #3b82f6, #2563eb); color:#fff; text-decoration:none; border-radius:10px; font-weight:700; font-size:16px;">Alisverise Basla</a>
             </p>',
             esc_html($user->display_name),
-            esc_html($new_label),
-            esc_html($old_label),
-            esc_html($new_label),
+            $new_label,
+            $old_label,
+            $new_label,
             esc_url($shop_url)
         );
 
@@ -263,12 +263,12 @@ class Gorilla_Email_Level_Up extends Gorilla_Email_Base {
                 <a href="%s" style="background:#f97316; color:#fff; padding:14px 40px; border-radius:8px; text-decoration:none; font-weight:700; font-size:15px; display:inline-block;">Hesabima Git</a>
             </p>',
             esc_html($user->display_name),
-            $new_level['emoji'] ?? '',
+            esc_html($new_level['emoji'] ?? ''),
             esc_html($new_level['label'] ?? 'Yeni'),
             esc_attr($new_level['color'] ?? '#999'),
             esc_attr($new_level['color'] ?? '#999'),
             esc_attr($new_level['color'] ?? '#999'),
-            $new_level['emoji'] ?? '',
+            esc_html($new_level['emoji'] ?? ''),
             esc_html($new_level['label'] ?? 'Yeni'),
             esc_url($account_url)
         );
@@ -322,7 +322,7 @@ class Gorilla_Email_Credit_Expiry_Warning extends Gorilla_Email_Base {
                 <a href="%s" style="background:#f97316; color:#fff; padding:14px 40px; border-radius:8px; text-decoration:none; font-weight:700; font-size:15px; display:inline-block;">Alisverise Basla</a>
             </p>',
             esc_html($user->display_name),
-            wc_price($expiring_amount),
+            wp_kses_post(wc_price($expiring_amount)),
             esc_html(date_i18n('d.m.Y', strtotime($expiry_date))),
             esc_url($shop_url)
         );
@@ -658,7 +658,7 @@ class Gorilla_Email_Badge_Earned extends Gorilla_Email_Base {
             esc_attr($badge['color'] ?? '#999'),
             esc_attr($badge['color'] ?? '#999'),
             esc_attr($badge['color'] ?? '#999'),
-            $badge['emoji'] ?? '',
+            esc_html($badge['emoji'] ?? ''),
             esc_html($badge['label'] ?? ''),
             esc_html($badge['description'] ?? ''),
             esc_url($account_url),
