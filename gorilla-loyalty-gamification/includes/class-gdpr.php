@@ -180,7 +180,7 @@ function gorilla_lg_gdpr_export_data($email_address, $page = 1) {
     $clicks_table = $wpdb->prefix . 'gorilla_affiliate_clicks';
     if (function_exists('gorilla_lr_table_exists') && gorilla_lr_table_exists($clicks_table)) {
         $clicks = $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM {$clicks_table} WHERE user_id = %d ORDER BY created_at DESC",
+            "SELECT * FROM {$clicks_table} WHERE referrer_user_id = %d ORDER BY clicked_at DESC",
             $user_id
         ));
         foreach ($clicks as $click) {
@@ -189,9 +189,10 @@ function gorilla_lg_gdpr_export_data($email_address, $page = 1) {
                 'group_label' => 'Affiliate Tiklama Gecmisi',
                 'item_id'     => 'affiliate-click-' . ($click->id ?? 0),
                 'data'        => array(
-                    array('name' => 'IP Adresi', 'value' => $click->ip_address ?? ''),
-                    array('name' => 'URL',       'value' => $click->url ?? ''),
-                    array('name' => 'Tarih',     'value' => $click->created_at ?? ''),
+                    array('name' => 'IP Adresi',  'value' => $click->visitor_ip ?? ''),
+                    array('name' => 'Referans Kodu', 'value' => $click->referrer_code ?? ''),
+                    array('name' => 'Donusum',    'value' => !empty($click->converted) ? 'Evet' : 'Hayir'),
+                    array('name' => 'Tarih',      'value' => $click->clicked_at ?? ''),
                 ),
             );
         }
@@ -424,7 +425,7 @@ function gorilla_lg_gdpr_erase_data($email_address, $page = 1) {
     // Affiliate clicks
     $clicks_table = $wpdb->prefix . 'gorilla_affiliate_clicks';
     if (function_exists('gorilla_lr_table_exists') && gorilla_lr_table_exists($clicks_table)) {
-        $clicks_deleted = $wpdb->delete($clicks_table, array('user_id' => $user_id), array('%d'));
+        $clicks_deleted = $wpdb->delete($clicks_table, array('referrer_user_id' => $user_id), array('%d'));
         if ($clicks_deleted) $items_removed += $clicks_deleted;
     }
 

@@ -94,11 +94,11 @@ add_action('gorilla_credit_adjusted', function($user_id, $amount, $description) 
     }
 }, 10, 3);
 
-add_action('gorilla_badge_earned', function($user_id, $badge_key) {
+add_action('gorilla_badge_earned', function($user_id, $badge_key, $tier_key = '') {
     $defs = function_exists('gorilla_badge_get_definitions') ? gorilla_badge_get_definitions() : array();
     $label = isset($defs[$badge_key]) ? $defs[$badge_key]['label'] : $badge_key;
     gorilla_notification_add($user_id, 'badge_earned', sprintf('Yeni rozet: %s', $label));
-}, 10, 2);
+}, 10, 3);
 
 
 // ── Credit Transfer AJAX ─────────────────────────────────

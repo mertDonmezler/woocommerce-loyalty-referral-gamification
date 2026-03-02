@@ -755,13 +755,13 @@ add_action('gorilla_xp_level_up', function($user_id, $old_level, $new_level) {
     gorilla_social_proof_log(sprintf('%s %s seviyesine yukseldi!', $name, $label));
 }, 10, 3);
 
-add_action('gorilla_badge_earned', function($user_id, $badge_key) {
+add_action('gorilla_badge_earned', function($user_id, $badge_key, $tier_key = '') {
     if (get_option('gorilla_lr_social_proof_enabled', 'no') !== 'yes') return;
     $anonymize = get_option('gorilla_lr_social_proof_anonymize', 'no') === 'yes';
     $name = $anonymize ? gorilla_social_proof_anon_name($user_id) : get_userdata($user_id)->display_name;
     $defs = function_exists('gorilla_badge_get_definitions') ? gorilla_badge_get_definitions() : array();
     gorilla_social_proof_log(sprintf('%s "%s" rozetini kazandi!', $name, $defs[$badge_key]['label'] ?? $badge_key));
-}, 10, 2);
+}, 10, 3);
 
 add_action('wp_footer', function() {
     if (is_admin() || get_option('gorilla_lr_social_proof_enabled', 'no') !== 'yes') return;

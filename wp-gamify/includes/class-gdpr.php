@@ -142,7 +142,7 @@ class WPGamify_GDPR {
         // Audit log entries export.
         $audit_table = $wpdb->prefix . 'gamify_audit_log';
         $audit_rows  = $wpdb->get_results( $wpdb->prepare(
-            "SELECT action, details, admin_user_id, created_at FROM {$audit_table} WHERE target_user_id = %d ORDER BY created_at DESC LIMIT 100",
+            "SELECT action, amount, before_value, after_value, reason, admin_id, created_at FROM {$audit_table} WHERE target_user_id = %d ORDER BY created_at DESC LIMIT 100",
             $user_id
         ), ARRAY_A );
         foreach ( $audit_rows as $ai => $arow ) {
@@ -152,7 +152,10 @@ class WPGamify_GDPR {
                 'item_id'     => "gamify-audit-{$user_id}-{$ai}",
                 'data'        => array(
                     array( 'name' => 'Islem', 'value' => $arow['action'] ?? '' ),
-                    array( 'name' => 'Detay', 'value' => $arow['details'] ?? '' ),
+                    array( 'name' => 'Miktar', 'value' => $arow['amount'] ?? '' ),
+                    array( 'name' => 'Onceki Deger', 'value' => $arow['before_value'] ?? '' ),
+                    array( 'name' => 'Sonraki Deger', 'value' => $arow['after_value'] ?? '' ),
+                    array( 'name' => 'Neden', 'value' => $arow['reason'] ?? '' ),
                     array( 'name' => 'Tarih', 'value' => $arow['created_at'] ?? '' ),
                 ),
             );

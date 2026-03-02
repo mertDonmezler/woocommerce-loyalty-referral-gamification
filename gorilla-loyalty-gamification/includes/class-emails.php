@@ -187,7 +187,7 @@ function gorilla_email_milestone_reached($user_id, $milestone) {
 }
 
 // ── Rozet Kazanildi E-postasi ───────────────────────────
-add_action('gorilla_badge_earned', 'gorilla_email_badge_earned', 10, 2);
+add_action('gorilla_badge_earned', 'gorilla_email_badge_earned', 10, 3);
 function gorilla_email_badge_earned($user_id, $badge_id) {
     $email = gorilla_get_wc_email('Gorilla_Email_Badge_Earned');
     if ($email) {
