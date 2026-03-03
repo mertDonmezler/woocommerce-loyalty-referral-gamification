@@ -1033,7 +1033,7 @@ function gorilla_tier_grace_check() {
         $grace_until = get_user_meta($user_id, '_gorilla_tier_grace_until', true);
 
         if (empty($grace_until)) {
-            $grace_date = gmdate('Y-m-d', strtotime("+{$grace_days} days"));
+            $grace_date = gmdate('Y-m-d H:i:s', strtotime("+{$grace_days} days"));
             update_user_meta($user_id, '_gorilla_tier_grace_until', $grace_date);
             update_user_meta($user_id, '_gorilla_tier_grace_from', $stored_key);
             continue;
